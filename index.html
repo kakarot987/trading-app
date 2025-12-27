@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Trades & Alerts</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #fafafa; padding: 20px; }
+        .box { border: 1px solid #ccc; padding: 12px; margin-bottom: 20px; background: white; }
+        .title { font-size: 1.2rem; margin-bottom: 8px; font-weight: bold; }
+        .msg { margin: 4px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <div class="title">Trades</div>
+    <div id="trades"></div>
+</div>
+
+<div class="box">
+    <div class="title">Alerts</div>
+    <div id="alerts"></div>
+</div>
+
+<script>
+    // ----- Trades WebSocket -----
+    const tradesWs = new WebSocket("ws://localhost:8082/ws/trades");
+    tradesWs.onopen = () => {
+      tradesWs.send(JSON.stringify({ symbols: ["AAPL","TSLA"] }));
+    };
+    tradesWs.onmessage = (ev) => {
+      console.log("TRADE:", ev.data);
+      const el = document.getElementById("trades");
+      const line = document.createElement("div");
+      line.className = "msg";
+      line.textContent = ev.data;
+      el.prepend(line);
+    };
+
+    // ----- Alerts WebSocket -----
+    const alertsWs = new WebSocket("ws://localhost:8082/ws/alerts");
+    alertsWs.onopen = () => {
+      alertsWs.send(JSON.stringify({ symbols: ["AAPL"] }));
+    };
+    alertsWs.onmessage = (ev) => {
+      console.log("ALERT:", ev.data);
+      const el = document.getElementById("alerts");
+      const line = document.createElement("div");
+      line.className = "msg";
+      line.textContent = ev.data;
+      el.prepend(line);
+    };
+</script>
+
+</body>
+</html>

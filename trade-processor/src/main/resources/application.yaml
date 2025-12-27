@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: trade-processor
+
+  # R2DBC Postgres connection
+  r2dbc:
+    url: r2dbc:postgresql://postgres:5432/trades
+    username: trader
+    password: traderpass
+
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://postgres:5432/trades
+    user: trader
+    password: traderpass
+    locations: classpath:db/migration
+
+  # Redis reactive connection
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+  # Kafka configuration
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: trade-processor
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Logging
+logging:
+  level:
+    root: OFF
+    org.springframework.kafka: OFF
+    com.trading: OFF
+    org.springframework: OFF
+    reactor.core.publisher: OFF
+    org.springframework.r2dbc: OFF
+
+# Actuator endpoints for health/metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

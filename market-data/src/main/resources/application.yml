@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: market-data-producer
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+
+server:
+  port: 8080
+
+stock:
+  api:
+    alpha-vantage:
+      key: 02HQBIHTXN8V5I5T
+    enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.trading.market_data: INFO
+    org.springframework.kafka: WARN
+#logging:
+#  level:
+#    root: OFF
+#    org.springframework.kafka: OFF
+#    com.trading: OFF
+#    org.springframework: OFF
+#    reactor.core.publisher: OFF
+#    org.springframework.r2dbc: OFF

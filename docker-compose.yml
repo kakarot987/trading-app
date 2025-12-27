@@ -1,0 +1,167 @@
+services:
+  kafka:
+    image: apache/kafka:4.1.0
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      # Node and roles
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # Listener setup
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # KRaft storage
+      KAFKA_STORAGE_DIRECTORY: /var/lib/kafka/data
+      KAFKA_CLUSTER_ID: "Lji3y8mPSUuPjWq6aM3mTg"
+
+      # Single-node defaults
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      LOGGING_LEVEL_ROOT: OFF
+      LOGGING_PATTERN_CONSOLE:
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - trading-network
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: traderpass
+      POSTGRES_DB: trades
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - trading-network
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - trading-network
+
+  market-data-producer:
+    build:
+      context: .
+      dockerfile: market-data/Dockerfile
+    container_name: market-data-producer
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - trading-network
+    restart: unless-stopped
+
+#  trade-processor:
+#    build:
+#      context: .
+#      dockerfile: trade-processor/Dockerfile
+#    container_name: trade-processor
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      SPRING_PROFILES_ACTIVE: docker
+#      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
+#      SPRING_R2DBC_USERNAME: trader
+#      SPRING_R2DBC_PASSWORD: traderpass
+#      REDIS_HOST: redis
+#      REDIS_PORT: 6379
+#    depends_on:
+#      - kafka
+#      - postgres
+#      - redis
+#    networks:
+#      - trading-network
+#    restart: unless-stopped
+#
+#  websocket-broadcaster:
+#    build:
+#      context: .
+#      dockerfile: websocket-broadcaster/Dockerfile
+#    container_name: websocket-broadcaster
+#    environment:
+#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      SPRING_PROFILES_ACTIVE: docker
+#    ports:
+#      - "8082:8082"
+#    depends_on:
+#      - kafka
+#    networks:
+#      - trading-network
+#    restart: unless-stopped
+#
+#  # NEW: Service 4 - Historical Data Service
+#  historical-data-service:
+#    build:
+#      context: .
+#      dockerfile: historical-service/Dockerfile
+#    container_name: historical-data-service
+#    ports:
+#      - "8084:8084"
+#    environment:
+#      SPRING_PROFILES_ACTIVE: docker
+#      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
+#      SPRING_R2DBC_USERNAME: trader
+#      SPRING_R2DBC_PASSWORD: traderpass
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/trades
+#      SPRING_DATASOURCE_USERNAME: trader
+#      SPRING_DATASOURCE_PASSWORD: traderpass
+#      REDIS_HOST: redis
+#      REDIS_PORT: 6379
+#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      KAFKA_ENABLED: "false"  # Set to "true" if you want real-time Kafka integration
+#    depends_on:
+#      - postgres
+#      - redis
+#    networks:
+#      - trading-network
+#    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      LOGGING_LEVEL_ROOT: OFF
+      LOGGING_PATTERN_CONSOLE:
+    networks:
+      - trading-network
+
+volumes:
+  kafka-data:
+  postgres-data:
+
+networks:
+  trading-network:
+    driver: bridge
