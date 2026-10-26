@@ -1,5 +1,12 @@
 # 📊 Real-Time Trading Platform
 
+## Project plan and target architecture
+
+**Start here:** [Six delivery milestones](MILESTONES.md) · [New architecture diagram (Mermaid)](TARGET-ARCHITECTURE.md) · [Implementation TODO](ROADMAP.md) · [Docker CPU/RAM optimization](RESOURCE-OPTIMIZATION.md).
+
+The architecture diagram describes **target v1.0**; completed work is tracked against milestone acceptance criteria. The legacy diagram below documents original intent.
+
+
 > **Project status (October 2026):** This is an actively developed real-time **market-data analytics** application. The application has been reported working locally, but the whole stack, performance and recovery claims have not been independently benchmarked here. This is not an order-execution or real-money brokerage product.
 >
 > **Plan:** [Delivery roadmap](ROADMAP.md) · [Docker CPU/RAM investigation](RESOURCE-OPTIMIZATION.md) · [Architecture decisions](ARCHITECTURE-DECISIONS.md)
