@@ -1,6 +1,9 @@
 # 🚀 Deployment Guide
 
-Complete guide for deploying the trading platform in different environments.
+> **Status warning:** The present root `docker-compose.yml` starts Kafka, PostgreSQL, Redis, Kafka UI and market-data producer; the trade processor, broadcaster and historical service blocks are commented out. Therefore the full-stack Docker instructions below are **targets requiring verification**, not one-command deployment proof. For day-to-day work, start only `kafka postgres redis` and run application services locally after checking the Kafka advertised listener configuration. See [resource optimization](RESOURCE-OPTIMIZATION.md) and [roadmap](ROADMAP.md).
+
+
+Deployment reference and proposed options; validate each command against the current Compose config before use.
 
 ---
 

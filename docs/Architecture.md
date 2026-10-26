@@ -1,5 +1,13 @@
 # 🏗️ System Architecture
 
+## New architecture proposal and milestones
+
+The updated [v1.0 architecture diagram](TARGET-ARCHITECTURE.md) is the portfolio-oriented reference, with service responsibilities, storage flows and explicit durability caveats. See [M1–M6 milestones](MILESTONES.md) for the implementation order and exit criteria, and [architecture decisions](ARCHITECTURE-DECISIONS.md) for trade-offs.
+
+
+> **Implementation vs target:** This document captures the intended system architecture. Service boundaries exist in code, but end-to-end reliability guarantees, benchmark figures and horizontally scaled operation remain to be verified. See [architecture decisions](ARCHITECTURE-DECISIONS.md), [roadmap](ROADMAP.md), and [resource optimization](RESOURCE-OPTIMIZATION.md).
+
+
 ## Overview
 
 This trading platform uses a microservices architecture with event-driven design patterns. Each service has a single, well-defined responsibility and communicates via Kafka, REST APIs, and WebSockets.
@@ -149,7 +157,7 @@ External API → Service 1 → Kafka → Service 2 → PostgreSQL/Redis
 
 **Characteristics:**
 - Event-driven, asynchronous
-- High throughput (10,000+ events/sec)
+- Throughput target (not yet benchmarked)
 - Low latency (<50ms)
 
 ---
