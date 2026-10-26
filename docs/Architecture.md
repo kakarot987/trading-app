@@ -1,5 +1,10 @@
 # 🏗️ System Architecture
 
+## New architecture proposal and milestones
+
+The updated [v1.0 architecture diagram](TARGET-ARCHITECTURE.md) is the portfolio-oriented reference, with service responsibilities, storage flows and explicit durability caveats. See [M1–M6 milestones](MILESTONES.md) for the implementation order and exit criteria, and [architecture decisions](ARCHITECTURE-DECISIONS.md) for trade-offs.
+
+
 > **Implementation vs target:** This document captures the intended system architecture. Service boundaries exist in code, but end-to-end reliability guarantees, benchmark figures and horizontally scaled operation remain to be verified. See [architecture decisions](ARCHITECTURE-DECISIONS.md), [roadmap](ROADMAP.md), and [resource optimization](RESOURCE-OPTIMIZATION.md).
 
 
