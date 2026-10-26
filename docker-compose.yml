@@ -13,7 +13,7 @@ services:
 
       # Listener setup
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -64,6 +64,8 @@ services:
       - trading-network
 
   market-data-producer:
+    profiles:
+      - producer
     build:
       context: .
       dockerfile: market-data/Dockerfile
@@ -73,6 +75,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
     networks:
       - trading-network
     restart: unless-stopped
@@ -144,6 +147,8 @@ services:
 #    restart: unless-stopped
 
   kafka-ui:
+    profiles:
+      - tools
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
