@@ -1,6 +1,9 @@
 # 🧪 Testing Guide
 
-Comprehensive testing strategies for the trading platform.
+> **Testing status:** Most snippets below are examples / suggested test designs; do not interpret them as tests present in the repository or as verified passing commands. Prioritize event-processing correctness and resource-aware smoke/integration testing. See [roadmap](ROADMAP.md) and [architecture decisions](ARCHITECTURE-DECISIONS.md).
+
+
+Testing strategy and examples for the trading platform; implementation and CI coverage remain to be verified.
 
 ---
 
