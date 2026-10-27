@@ -1,5 +1,10 @@
 # 🏗️ System Architecture
 
+## Current target architecture (AI + paper trading)
+
+**Current proposed design:** [AI platform architecture and flows](AI-PLATFORM-ARCHITECTURE.md), [eight milestones](MILESTONES-AI.md), [project structure and technologies](PROJECT-STRUCTURE-AND-TECH.md), and [mobile integration plan](MOBILE-ROADMAP.md). The older market-data-only diagram below is a historical/reference view of the existing foundation, not the final product architecture.
+
+
 ## New architecture proposal and milestones
 
 The updated [v1.0 architecture diagram](TARGET-ARCHITECTURE.md) is the portfolio-oriented reference, with service responsibilities, storage flows and explicit durability caveats. See [M1–M6 milestones](MILESTONES.md) for the implementation order and exit criteria, and [architecture decisions](ARCHITECTURE-DECISIONS.md) for trade-offs.
