@@ -1,5 +1,8 @@
 # Delivery milestones — v1.0
 
+> **Superseded for future planning:** See [AI signals and paper trading milestones (M1–M8)](MILESTONES-AI.md), including mobile stages. This six-milestone document remains as a historical market-data platform plan; milestones here should not be mistaken for completion of AI or paper trading features.
+
+
 **Status:** planned, not completed or verified. Estimated 8–10 weeks part-time; order and exit criteria matter more than calendar estimates.
 
 | ID | Milestone | Target | Definition of done |
