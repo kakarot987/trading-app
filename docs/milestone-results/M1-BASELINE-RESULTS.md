@@ -2,8 +2,8 @@
 
 **Project:** [trading-app](https://github.com/kakarot987/trading-app)  
 **Milestone tracker:** [`docs/MILESTONES.md`](https://github.com/kakarot987/trading-app/blob/main/docs/MILESTONES.md)  
-**Measurement date:** 2026-10-26 (log timestamps in UTC)  
-**Status:** In progress — initial resource baseline captured; M1 Task 2 Compose profiles validated locally, documentation and final health checks pending.
+**Measurement dates:** 2026-10-26 to 2026-10-27 (terminal/log times can differ by timezone)  
+**Status:** In progress — resource baseline, Compose modes, and Docker application connectivity verified; repository hygiene and build/test baseline remain pending.
 
 > This document records observations, not assumed performance guarantees. The repository was not modified by ChatGPT. Update this file after each local verification and commit/push it yourself when ready.
 
@@ -63,21 +63,21 @@ Change in summed measured memory: **+27.184 MiB** between snapshots.
 - Topic inspection reported `trade-events`, **1 partition**, replication factor **1**, leader **1**, ISR **1** (single-broker development configuration).
 - Two offset readings were `trade-events:0:47460` and `trade-events:0:49692`, an increase of **2,232**. This confirms Kafka appended new records between readings; no precise throughput rate can be calculated without the elapsed time.
 - Earlier Kafka logs showed intermittent KRaft broker/controller heartbeat request timeouts around **05:24–05:30 UTC**. A subsequent `docker logs --since 2m kafka ... Select-String ...` check produced **no matching lines**. Root cause and recurrence remain unverified.
-- PostgreSQL persistence, downstream processing, and frontend delivery were **not** verified by this exercise (planned for M2).
+- PostgreSQL persistence and downstream Kafka consumption were subsequently verified in Task 3 (below). Browser/frontend delivery remains unverified (M2).
 
 ## 4. M1 tracker
 
 | M1 requirement | State | Evidence / next action |
 |---|---|---|
-| Capture baseline CPU/RAM | **Partial** | Infrastructure idle snapshots and producer+infra snapshot captured; still need defined workload, full app, peak/sustained readings. |
-| Document infrastructure-only mode and Compose limitations | **Partially verified** | Default Compose now selects only Kafka/PostgreSQL/Redis; opt-in `producer` and `tools` profiles list intended services. Confirm `docs/LOCAL-DEVELOPMENT.md` exists and accurately describes limitations before calling complete. |
-| Verify environment variables and broker listeners | **Pending** | Inspect all service configs; Compose advertises `kafka:9092` but also exposes port `29092` for host access. Validate before editing. |
+| Capture baseline CPU/RAM | **Partial** | Infrastructure idle, producer+infra, and seven-container workload snapshots captured; still need reproducible defined-load durations and sustained/peak figures. |
+| Document infrastructure-only mode and Compose limitations | **Needs refresh** | `docs/LOCAL-DEVELOPMENT.md` exists and default/optional profiles were validated; guide still describes outdated Kafka host-listener and full-backend limitations, while current user Compose runs seven containers. |
+| Verify environment variables and broker listeners | **Substantially verified** | Docker internal `kafka:9092` and host `localhost:29092` listeners configured; JVM timezone UTC; Docker Flyway/R2DBC PostgreSQL URLs must use `postgres:5432`; Kafka consumer group active. Remaining per-service settings/functional checks below. |
 | Untrack build/IDE artifacts; audit `.env` | **Pending** | Review tracked files; do not remove source or Gradle wrapper; check exposed secrets. |
 | Capture build/test baseline | **Pending** | Run builds/tests and record pass/fail plus environment. |
 
 ## 4A. Task 2 — Compose development mode verification (2026-10-26)
 
-**Local user-reported results:**
+**Local user-reported results (historical Task 2 snapshot; later progress appears in Task 3):**
 
 | Check | Result | Evidence |
 |---|---|---|
@@ -102,6 +102,57 @@ docker compose --profile producer --profile tools config --services
 docker compose up -d --no-build
 docker compose ps
 ```
+
+
+## 4B. Task 3 — Docker environment, listeners and application verification (2026-10-27)
+
+**Configuration findings and fixes:**
+
+- Kafka advertises both an internal Docker listener, `kafka:9092`, and host listener, `localhost:29092`. The broker subsequently reported healthy.
+- Windows `trade-processor:bootRun` initially failed PostgreSQL host resolution (`postgres`), then JDBC timezone negotiation (`Asia/Calcutta`); `JAVA_TOOL_OPTIONS=-Duser.timezone=UTC` resolved the reported timezone failure.
+- The trade processor's custom `KafkaConfig.kt` had hardcoded `kafka:9092` in consumer and producer factories, bypassing the environment-configured `localhost:29092` for Windows. Configuration was revised to use Spring Kafka properties; a Windows Java process and Kafka group membership were observed.
+- The Docker market-data producer temporarily failed DNS resolution for `kafka:9092` while its previous container was exited; the user reported success after a Compose force-recreate. Root cause was not conclusively isolated.
+- The Docker trade processor initially attempted Flyway JDBC connection to `localhost:5432` and failed. Docker Compose configuration was adjusted to supply PostgreSQL service-address URLs for both R2DBC and Flyway (`postgres:5432`) and Redis service host (`redis`).
+- At verification, seven containers were up: Kafka (healthy), PostgreSQL, Redis, market-data producer, trade processor, WebSocket broadcaster, historical service. The frontend was not part of this Docker check.
+
+**Kafka and persistence verification:**
+
+| Check | Observed result | Interpretation |
+|---|---|---|
+| Consumer group | `trade-processor`, `trade-events`, partition `0` | Consumer subscribed and assigned |
+| Kafka current offset / log-end offset | `49843 / 49843` | Consumer caught up *at that snapshot* |
+| Kafka lag | `0` | No lag *at that snapshot*, not a permanent guarantee |
+| PostgreSQL `SELECT COUNT(*) FROM trades` | `52,290` | Existing persisted trade rows |
+| Follow-up PostgreSQL count | `56,594` | **+4,304 rows**, confirms ongoing persistence between checks |
+| Follow-up `MAX(processed_at)` | `1793073946730` (epoch milliseconds) | Last persisted processing timestamp at query time |
+| Recent-latency query | 1,672 records with `processed_at` in preceding 60 seconds | Recent processing sample |
+| Recent recorded `latency_ms` | Average **1,341 ms**, minimum **2 ms**, maximum **2,541 ms** | Application-recorded trade latency, not network latency |
+
+First rows inspected were BTCUSDT and ETHUSDT Binance trades with ID, side, volume, timestamps and latency fields. Some older rows had ~1,038,000 ms latency; this may indicate backlog, but root cause was not established. Don't generalize the recent latency sample to a sustained p95/p99 SLA.
+
+**Full backend + infrastructure Docker resource snapshot:**
+
+| Container | CPU | Memory |
+|---|---:|---:|
+| Trade processor | 3.09% | 929.8 MiB |
+| Market-data producer | 0.65% | 320.3 MiB |
+| Historical service | 0.20% | 275.4 MiB |
+| WebSocket broadcaster | 1.06% | 348.6 MiB |
+| Kafka | 8.49% | 983 MiB |
+| Redis | 0.58% | 10.53 MiB |
+| PostgreSQL | 0.59% | 77.48 MiB |
+| **Sum of Docker readings** | **14.66%** | **2,945.11 MiB (2.88 GiB)** |
+
+Seven-container memory is about 8.37 times the earlier ~351.95 MiB infrastructure-only reading, **not a controlled like-for-like comparison**. Snapshots cannot establish peak resource use or throughput; Docker Desktop/WSL host overhead is omitted.
+
+**Remaining service health check:**
+
+- `docker logs --since 2m websocket-broadcaster` filtered for `ERROR|WARN|Exception|Connected|Started` returned no matches.
+- The same filter for `historical-data-service` returned no matches. Absence of matched logs does not prove successful WebSocket delivery or historical functionality.
+- `Invoke-RestMethod http://localhost:8084/actuator/health` returned `UP`.
+- WebSocket delivery to a browser, historical REST result correctness, automated end-to-end smoke tests, and service-specific env audit remain unverified.
+
+**Task 3 assessment:** Key environment, listener, Flyway and Kafka/DB runtime issues resolved in the observed configuration. Core market ingestion → Kafka → trade-processor → PostgreSQL path demonstrated. Further correctness and frontend-facing tests belong to M2. Update `docs/LOCAL-DEVELOPMENT.md` for current full-backend Compose mode in a separate documentation task.
 
 ## 5. Commands used
 
@@ -136,3 +187,4 @@ docker version --format '{{.Server.Version}}'
 |---|---|---|
 | 2026-10-26 | Created baseline-results document from terminal measurements and logs | Transcribed from user-provided output; no application code changed |
 | 2026-10-26 | Added M1 Task 2 Compose configuration verification | Based on user terminal output; documentation and Kafka final health still pending |
+| 2026-10-27 | Recorded M1 Task 3 Kafka, Docker, PostgreSQL, health and resource results | Based on user-provided commands and logs; full application correctness not inferred |

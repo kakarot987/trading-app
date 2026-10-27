@@ -5,10 +5,6 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-
-/trade-processor/
-/websocket-broadcaster/
-/historical-service/
 ### STS ###
 .apt_generated
 .classpath
