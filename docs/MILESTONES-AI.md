@@ -16,12 +16,22 @@
 | Mobile B (after M5/M6 API ready) | 2–3 weeks | Live signals/watchlist/alerts and paper portfolio using same versioned backend contract |
 
 ## Execution TODO
-### M1
-- [ ] Reconcile latest `main` cleanup with resource optimization TODO before repeating completed work.
-- [ ] Record `docker stats --no-stream`, heap/native memory and workload; profile Kafka UI, Kafka and each JVM.
-- [ ] Establish and document infra-only Docker, host-run JVM, optional AI inference.
-- [ ] Fix advertised Kafka listeners for host/container clients; verify smoke flow.
-- [ ] Publish measured before/after memory, CPU and latency data; no arbitrary resource cap target.
+### M1 — verified progress against latest `main` (2026-10-27)
+Evidence: [M1 baseline results](milestone-results/M1-BASELINE-RESULTS.md), root `.gitignore`, and Docker Compose. **Checked = specific observed subtask**, not the entire milestone.
+
+- [x] Record initial per-container Docker CPU/RAM snapshots (infra-only, infra+producer, seven-container stack); snapshots are **not** sustained/peak benchmarks.
+- [x] Configure and validate infrastructure-only Compose selection plus opt-in `producer`/`tools` profiles; full-stack running was also observed later, but not a comprehensive automated smoke test.
+- [x] Configure and verify Kafka internal `kafka:9092` and host `localhost:29092` advertised listeners, and confirm consumer group participation.
+- [x] Confirm live producer → Kafka → trade processor → PostgreSQL persistence with increasing trade row count and zero consumer lag in a captured snapshot.
+- [x] Add root ignore rules for Gradle/build/IDE artifacts and environment files; tracked artifact cleanup was introduced in merged M1 baseline.
+- [ ] Verify repository hygiene is fully complete and no sensitive values were previously committed; review and rotate secrets if needed.
+- [ ] Update local development instructions to reflect current Compose profiles and seven-container results.
+- [ ] Run and record reproducible backend build/test results plus frontend lint/build.
+- [ ] Measure controlled sustained/peak Docker + WSL host CPU/RAM with comparable workloads and durations.
+- [ ] Profile high-memory containers (notably trade processor and Kafka in the recorded snapshot); apply and verify one optimization at a time.
+- [ ] Publish measured before/after CPU/RAM and latency comparison; confirm correctness and no OOM/reconnect loop.
+
+**Observed snapshot (not an optimization outcome):** seven containers total approximately **2,945 MiB (2.88 GiB)** according to the recorded Docker stats sum; excludes host WSL/Docker overhead. M1 remains **in progress**.
 
 ### M2
 - [ ] Verify fixes in latest TradeConsumer and Postgres schema rather than assuming old findings persist.
