@@ -1,5 +1,7 @@
 # 📊 Real-Time Trading Platform
 
+**Separate native app plans:** [Android — Kotlin / Jetpack Compose](ANDROID-STANDALONE-APP.md) · [iOS — Swift / SwiftUI](IOS-STANDALONE-APP.md). These will become independent repositories with local JSON fixtures and a future common API contract.
+
 ## Current product direction: AI signals + paper trading + Android/iOS
 
 The **current planning baseline** is an AI-powered crypto intelligence platform with explainable signals, alerts, spot paper trading and simulated performance tracking. React Web remains in place; a separate Expo React Native client starts with mock data and later consumes the same APIs.
