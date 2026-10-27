@@ -1,5 +1,7 @@
 # Android + iOS strategy — mock now, connect later
 
+> **Updated choice:** Build *two separate native apps*, not the previously suggested single Expo codebase. Use [Android specification](ANDROID-STANDALONE-APP.md) (Kotlin + Jetpack Compose) and [iOS specification](IOS-STANDALONE-APP.md) (Swift + SwiftUI). The Expo approach below is retained as an alternative, not the chosen plan.
+
 **Recommendation:** add a separate **Expo + React Native + TypeScript** mobile client, not a React website rewrite. It is suitable for developing cross-platform app skills alongside the existing React web stack. If targeting specialist native positions, Kotlin/Jetpack Compose for Android and Swift/SwiftUI for iOS demonstrate *native* skills more directly.
 
 ## Phase A: independent mock API app
