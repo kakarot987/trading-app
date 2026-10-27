@@ -1,5 +1,14 @@
 # 📊 Real-Time Trading Platform
 
+## Current product direction: AI signals + paper trading + Android/iOS
+
+The **current planning baseline** is an AI-powered crypto intelligence platform with explainable signals, alerts, spot paper trading and simulated performance tracking. React Web remains in place; a separate Expo React Native client starts with mock data and later consumes the same APIs.
+
+**Start with:** [AI architecture](AI-PLATFORM-ARCHITECTURE.md) · [Eight milestones](MILESTONES-AI.md) · [Technology and project structure](PROJECT-STRUCTURE-AND-TECH.md) · [Mobile plan](MOBILE-ROADMAP.md) · [Docker optimization](RESOURCE-OPTIMIZATION.md).
+
+The older six-milestone architecture plan below remains for historical reference; it is not the current scope. All new modules and APIs are **proposed**, not claimed implemented.
+
+
 ## Project plan and target architecture
 
 **Start here:** [Six delivery milestones](MILESTONES.md) · [New architecture diagram (Mermaid)](TARGET-ARCHITECTURE.md) · [Implementation TODO](ROADMAP.md) · [Docker CPU/RAM optimization](RESOURCE-OPTIMIZATION.md).
