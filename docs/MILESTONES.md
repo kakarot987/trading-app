@@ -1,5 +1,7 @@
 # Delivery milestones — v1.0
 
+> **M1 progress:** The latest [M1 results](milestone-results/M1-BASELINE-RESULTS.md) verify Compose profiles, Kafka connectivity, and sample Kafka-to-PostgreSQL persistence. See [AI milestones](MILESTONES-AI.md) for evidence-based completed checkboxes and outstanding profiling/tests. M1 is not yet closed.
+
 > **Superseded for future planning:** See [AI signals and paper trading milestones (M1–M8)](MILESTONES-AI.md), including mobile stages. This six-milestone document remains as a historical market-data platform plan; milestones here should not be mistaken for completion of AI or paper trading features.
 
 
