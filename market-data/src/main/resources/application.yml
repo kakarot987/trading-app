@@ -15,7 +15,7 @@ server:
 stock:
   api:
     alpha-vantage:
-      key: 02HQBIHTXN8V5I5T
+      key: ${ALPHA_VANTAGE_API_KEY:}
     enabled: true
 
 logging:
