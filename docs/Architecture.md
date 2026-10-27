@@ -1,413 +1,112 @@
-# 🏗️ System Architecture
+# AI Crypto Intelligence & Paper Trading — target architecture
 
-## New architecture proposal and milestones
+**Status:** Unified AI-first platform architecture. Some components are implemented and others are planned; each capability must be verified against code and tests. Baseline: main at `2ed638c3` (2026-10-27). No real-money order execution is planned for v1. application reportedly runs locally; full-stack behavior and performance need verification.
 
-The updated [v1.0 architecture diagram](TARGET-ARCHITECTURE.md) is the portfolio-oriented reference, with service responsibilities, storage flows and explicit durability caveats. See [M1–M6 milestones](MILESTONES.md) for the implementation order and exit criteria, and [architecture decisions](ARCHITECTURE-DECISIONS.md) for trade-offs.
+## Goals and non-goals
+- Analyze live and historical crypto OHLCV, technical indicators, timestamped news and economic/event context.
+- Produce versioned, explainable direction/probability estimates for clearly defined horizons.
+- Deliver alerts and run **spot-only, long-only simulated trading** with measured fees, spreads, slippage and recorded assumptions.
+- Measure model predictive skill and simulated strategy performance separately; compare with simple baselines.
+- Serve React Web, Android and iOS through shared versioned API contracts.
+- **Out of scope v1:** broker keys, real-money trades, leverage, guaranteed profit predictions, Kubernetes, multiple unnecessary microservices.
 
-
-> **Implementation vs target:** This document captures the intended system architecture. Service boundaries exist in code, but end-to-end reliability guarantees, benchmark figures and horizontally scaled operation remain to be verified. See [architecture decisions](ARCHITECTURE-DECISIONS.md), [roadmap](ROADMAP.md), and [resource optimization](RESOURCE-OPTIMIZATION.md).
-
-
-## Overview
-
-This trading platform uses a microservices architecture with event-driven design patterns. Each service has a single, well-defined responsibility and communicates via Kafka, REST APIs, and WebSockets.
-
----
-
-## High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     TRADING PLATFORM                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐         ┌──────────────┐                     │
-│  │   Binance    │         │Yahoo Finance │                     │
-│  │   WebSocket  │         │  REST API    │                     │
-│  └──────┬───────┘         └──────┬───────┘                     │
-│         │                        │                              │
-│         └────────┬───────────────┘                              │
-│                  ↓                                               │
-│         ┌────────────────────┐                                  │
-│         │  Service 1         │                                  │
-│         │  Market Data       │                                  │
-│         │  Producer          │                                  │
-│         └─────────┬──────────┘                                  │
-│                   │                                              │
-│                   ↓ Kafka (trade-events)                        │
-│         ┌────────────────────┐                                  │
-│         │  Service 2         │                                  │
-│         │  Trade Processor   │                                  │
-│         └─────┬───┬──────────┘                                  │
-│               │   │                                              │
-│               │   └─→ PostgreSQL (trades)                       │
-│               │   └─→ Redis (cache)                             │
-│               │                                                  │
-│               ↓ Kafka (processed-trades)                        │
-│         ┌────────────────────┐                                  │
-│         │  Service 3         │                                  │
-│         │  WebSocket         │                                  │
-│         │  Broadcaster       │                                  │
-│         └─────────┬──────────┘                                  │
-│                   │                                              │
-│                   ↓ WebSocket                                   │
-│         ┌────────────────────┐                                  │
-│         │    Frontend        │                                  │
-│         │    Clients         │                                  │
-│         └─────────┬──────────┘                                  │
-│                   │                                              │
-│                   ↓ REST API                                    │
-│         ┌────────────────────┐                                  │
-│         │  Service 4         │                                  │
-│         │  Historical Data   │                                  │
-│         └─────┬───┬──────────┘                                  │
-│               │   │                                              │
-│               │   └─→ PostgreSQL (read trades, write candles)   │
-│               │   └─→ Redis (cache)                             │
-│               │   └─→ Service 1 (backfill missing data)         │
-│               │                                                  │
-└───────────────┴─────────────────────────────────────────────────┘
+## Logical component architecture
+```mermaid
+flowchart TB
+    EX["Exchange feeds (Binance etc.)"] --> ING["Market Data Producer"]
+    ING --> RAW[("Kafka: trade-events")]
+    RAW --> PROC["Trade Processor"]
+    PROC --> PG[("PostgreSQL")]
+    PROC --> OUT[("Kafka: processed-trades")]
+    OUT --> WS["WebSocket Broadcaster"]
+    PG <--> HIST["Historical API"]
+    NEWS["News / macro event feeds"] --> NORM["News ingestion + provenance"]
+    NORM --> FEAT["Feature engineering + point-in-time joins"]
+    HIST --> FEAT
+    FEAT --> PRED["Python AI inference + model registry"]
+    PRED --> RULE["Signal validation / risk policy"]
+    RULE --> SIGNALS[("Signals + decisions: durable records")]
+    RULE --> ALERT["Alert delivery"]
+    RULE --> PAPER["Kotlin Paper Trading module"]
+    PAPER --> LEDGER[("Orders, fills, positions, cash ledger")]
+    LEDGER --> PERF["Portfolio / performance analytics"]
+    SIGNALS --> API["Versioned client REST API / BFF"]
+    PERF --> API
+    HIST --> API
+    WS --> API
+    ALERT --> API
+    API --> WEB["React Web"]
+    API --> MOBILE["Expo React Native: Android + iOS"]
 ```
 
----
+**Diagram is conceptual:** the client REST/BFF, news ingestion, prediction, risk, paper trading, and shared mobile API are proposed. WS may connect directly to clients through a controlled endpoint; the diagram simplifies auth and fanout. Preserve Kafka-to-database consistency by explicit acknowledgment, retry/idempotency and transactional outbox where justified; no exactly-once cross-system claim.
 
-## Service Responsibilities
+## Service boundaries and implementation order
+| Component | Proposed owner | Phase | Important contract |
+|---|---|---|---|
+| Market ingestion, trade processing, historical REST, WS | Kotlin/Spring services | Harden first | Stable IDs, UTC timestamps, reproducible event delivery |
+| News ingestion + sentiment | Python module/job; not separate always-on container initially | AI stage | Event time **and** first-observed time; source, asset, confidence, dedup |
+| Technical features | Python jobs shared with model training | AI stage | Point-in-time joins and dataset versioning |
+| Prediction | Python / FastAPI process (optional at dev time) | AI stage | Model version, horizon, calibrated probability, input cutoff |
+| Risk decisions | Pure domain module | AI stage | Reasons for reject/accept, exposure/volatility limits |
+| Paper trading | Kotlin module/process | Paper stage | Decimal arithmetic, immutable fills/ledger, deterministic replay |
+| Portfolio analytics | Module + read APIs | Paper stage | Equity, realized/unrealized P&L, fees, max drawdown |
+| Client API | Versioned REST plus WS/SSE contract | Web/mobile stage | DTO/OpenAPI schemas, pagination, auth boundary |
+| React / React Native | Separate UI packages | Ongoing | Shared domain schemas, independent UX |
 
-### **Service 1: Market Data Producer**
+## Critical data flows
+### Live market data
+1. Exchange tick → normalize/idempotent event → Kafka (symbol partition key).
+2. Processor persists then publishes via a documented durable strategy; Redis cache is an optimization.
+3. Broadcaster emits only validated events to subscribed clients; clients detect gaps, stale feeds and reconnect.
 
-**Responsibility:** Gateway to external market data sources
+### AI signal
+1. Persist historical candles and news **as observed at that time**, including data availability delays.
+2. Build features for symbol, prediction timestamp and explicit horizon (start with BTCUSDT / ETHUSDT, 4h).
+3. Train baseline (logistic regression) then evaluate tree model against a held-out walk-forward period; calibrate probabilities.
+4. Write `signal_id, symbol, created_at, horizon, model_version, probability, feature_cutoff_at, evidence`.
+5. Apply deterministic risk/alert thresholds; do not present LLM text as a calibrated probability.
 
-**Functions:**
-- Establishes WebSocket connections to Binance for real-time crypto data
-- Polls Yahoo Finance REST API every 60 seconds for stock prices
-- Normalizes data from different sources into canonical format
-- Publishes events to Kafka
-- **NEW:** Provides REST endpoints for historical data backfill
-
-**Why Separate:**
-- Isolates external API dependencies
-- Single point of configuration for API keys
-- Easy to add new data sources (Coinbase, Kraken, etc.)
-
----
-
-### **Service 2: Trade Processor**
-
-**Responsibility:** Centralized trade processing and persistence
-
-**Functions:**
-- Consumes raw trade events from Kafka
-- Enriches with metadata (processing timestamp, latency)
-- Validates and normalizes data
-- Persists to PostgreSQL for durability
-- Caches recent trades in Redis for fast access
-- Publishes enriched events to Kafka
-
-**Why Separate:**
-- Decouples data ingestion from storage
-- Can scale independently for high write throughput
-- Single source of truth for trade data
-
----
-
-### **Service 3: WebSocket Broadcaster**
-
-**Responsibility:** Real-time communication with frontend clients
-
-**Functions:**
-- Maintains persistent WebSocket connections
-- Subscribes to Kafka for processed trades
-- Broadcasts updates to connected clients
-- Supports topic filtering (e.g., only BTC updates)
-
-**Why Separate:**
-- Handles connection management complexity
-- Can scale horizontally for more WebSocket connections
-- Doesn't impact data processing if connections fail
-
----
-
-### **Service 4: Historical Data Service**
-
-**Responsibility:** Historical data queries and analytics
-
-**Functions:**
-- Provides REST APIs for historical queries
-- Multi-layer data retrieval strategy
-- Aggregates raw trades into OHLCV candles
-- Background jobs for pre-aggregation
-- Caches results for performance
-
-**Why Separate:**
-- Complex query logic isolated from real-time path
-- Can optimize for read-heavy workload
-- Independent scaling based on query volume
-
----
-
-## Data Flow Patterns
-
-### **Pattern 1: Real-Time Data Ingestion**
-
-```
-External API → Service 1 → Kafka → Service 2 → PostgreSQL/Redis
-                                          ↓
-                                   Service 3 → WebSocket → Frontend
+### Paper-trading lifecycle
+```mermaid
+flowchart LR
+    S["Accepted signal"] --> O["Create idempotent order"]
+    O --> V{"Funds / risk valid?"}
+    V -- "No" --> R["Record rejection"]
+    V -- "Yes" --> F["Simulate fill on eligible future tick"]
+    F --> C["Fees + spread + slippage"]
+    C --> L["Persist fill and cash ledger atomically"]
+    L --> P["Update positions & performance"]
 ```
 
-**Characteristics:**
-- Event-driven, asynchronous
-- Throughput target (not yet benchmarked)
-- Low latency (<50ms)
-
----
-
-### **Pattern 2: Historical Data Query**
-
-```
-Frontend → Service 4 → Redis (cache hit?) → Return
-                    ↓ (cache miss)
-               PostgreSQL → Aggregate → Cache → Return
-                    ↓ (no DB data)
-               Service 1 → Binance API → Store → Return
-```
-
-**Characteristics:**
-- Request-response, synchronous
-- Multi-layer caching
-- Fallback to external APIs
-
----
-
-### **Pattern 3: Cross-Service Communication**
-
-```
-Service 4 ←─REST API─→ Service 1
-   ↓                       ↓
-PostgreSQL (shared)   Binance API
-```
-
-**Characteristics:**
-- REST for historical data fetch
-- Shared database (Service 2 writes, Service 4 reads)
-- No circular dependencies
-
----
-
-## Technology Choices
-
-### **Why Kotlin?**
-- Concise, expressive syntax
-- Null-safety built-in
-- Excellent coroutines support for async/reactive code
-- Full Java interoperability
-
-### **Why Spring WebFlux?**
-- Non-blocking, reactive programming model
-- Better resource utilization
-- Handles high concurrency with fewer threads
-- Native Kotlin coroutines support
-
-### **Why Kafka?**
-- Guaranteed message delivery
-- High throughput (millions of messages/sec)
-- Event replay capability
-- Decouples producers and consumers
-
-### **Why PostgreSQL?**
-- ACID compliance for financial data
-- Excellent query performance
-- JSON support for flexible schemas
-- Proven reliability
-
-### **Why Redis?**
-- Sub-millisecond latency
-- Pub/sub for real-time updates
-- Data structures (sorted sets, hashes)
-- LRU eviction for cache management
-
-### **Why R2DBC?**
-- Reactive database access (non-blocking)
-- Consistent with Spring WebFlux
-- Better scalability than JDBC
-
----
-
-## Scalability Strategy
-
-### **Horizontal Scaling**
-
-**Service 1:**
-- Add more instances to connect to different exchanges
-- Each instance handles different symbols
-
-**Service 2:**
-- Kafka consumer group auto-balances partitions
-- Scale based on write throughput
-
-**Service 3:**
-- Stateless, can scale to thousands of instances
-- Load balancer distributes WebSocket connections
-
-**Service 4:**
-- Read-only, can scale independently
-- Add replicas based on query volume
-
-### **Vertical Scaling**
-
-**PostgreSQL:**
-- Increase connection pool size
-- Add read replicas for Service 4
-- Partition tables by time (monthly)
-
-**Redis:**
-- Redis Cluster for horizontal sharding
-- Read replicas for cache reads
-
-**Kafka:**
-- Increase partitions for parallelism
-- Add brokers for higher throughput
-
----
-
-## Fault Tolerance
-
-### **Service Failures**
-
-**Service 1 Down:**
-- Kafka retains events until Service 2 catches up
-- Service 4 can still serve cached/stored data
-
-**Service 2 Down:**
-- Service 1 buffers events in Kafka
-- WebSocket clients see stale data until recovery
-
-**Service 3 Down:**
-- No real-time updates to frontend
-- Frontend can poll Service 4 for updates
-
-**Service 4 Down:**
-- Real-time path unaffected
-- Historical queries fail, frontend shows error
-
-### **Infrastructure Failures**
-
-**Kafka Down:**
-- Services buffer in-memory (limited)
-- Graceful degradation
-
-**PostgreSQL Down:**
-- Redis serves cached data
-- Writes fail, services log errors
-
-**Redis Down:**
-- Services fall back to PostgreSQL
-- Slower but functional
-
----
-
-## Security Considerations
-
-### **API Security**
-- Service-to-service auth with API keys
-- Rate limiting per service
-- Input validation on all endpoints
-
-### **Data Security**
-- PostgreSQL connection pooling with SSL
-- Redis password authentication
-- Kafka SASL/SCRAM authentication (production)
-
-### **Network Security**
-- Docker network isolation
-- Services only expose necessary ports
-- Frontend CORS configuration
-
----
-
-## Monitoring & Observability
-
-### **Metrics**
-- Spring Boot Actuator endpoints
-- Prometheus-compatible metrics
-- Custom business metrics (trades/sec, latency)
-
-### **Logging**
-- Structured JSON logging
-- Correlation IDs for request tracing
-- Log aggregation (ELK stack recommended)
-
-### **Health Checks**
-- Kubernetes-ready liveness/readiness probes
-- Database connection health
-- Kafka consumer lag monitoring
-
----
-
-## Trade-offs & Design Decisions
-
-### **Shared Database (Service 2 & 4)**
-
-**Pro:** Simple, consistent data  
-**Con:** Tight coupling  
-**Decision:** Acceptable for this use case, shared read-only access
-
-### **Synchronous REST (Service 4 → Service 1)**
-
-**Pro:** Simple request-response  
-**Con:** Latency, tight coupling  
-**Decision:** Acceptable for backfill use case (infrequent)
-
-### **No Service Mesh (Istio/Linkerd)**
-
-**Pro:** Simpler deployment, fewer moving parts  
-**Con:** Manual service discovery  
-**Decision:** Docker Compose sufficient for small-scale deployment
-
-### **Single Kafka Instance**
-
-**Pro:** Simple setup  
-**Con:** Single point of failure  
-**Decision:** Fine for development, use cluster in production
-
----
-
-## Future Enhancements
-
-### **Phase 2**
-- Service 5: AI/Analytics Engine
-- Alert Service (price alerts, anomaly detection)
-- Service discovery (Consul/Eureka)
-
-### **Phase 3**
-- Multi-region deployment
-- Event sourcing with Event Store
-- GraphQL API layer
-
-### **Phase 4**
-- Kubernetes deployment
-- Auto-scaling based on metrics
-- Distributed tracing (Jaeger)
-
----
-
-## Architecture Principles
-
-1. **Single Responsibility:** Each service does one thing well
-2. **Loose Coupling:** Services communicate via well-defined interfaces
-3. **High Cohesion:** Related functionality grouped together
-4. **Scalability:** Each component can scale independently
-5. **Resilience:** Graceful degradation on failures
-6. **Observability:** Comprehensive logging and metrics
-
----
-
-## Conclusion
-
-This architecture balances:
-- **Simplicity:** Easy to understand and deploy
-- **Performance:** Sub-second latency, high throughput
-- **Reliability:** Fault-tolerant with multiple fallbacks
-- **Scalability:** Can grow from prototype to production
-
-Perfect for learning microservices while building a real trading platform! 🚀
+Paper trading must not consume future market data at signal time. In replay, use deterministic clock/config with no implicit hindsight. Keep order/fill IDs and currency precision stable.
+
+## Proposed core entities
+- `news_events(id, source, published_at, observed_at, assets, sentiment, event_type, provenance)`
+- `feature_sets(symbol, as_of, feature_version, cutoff_at, artifact_uri)`
+- `model_versions(id, trained_through, data_version, metrics, artifact_uri)`
+- `signals(id, symbol, created_at, horizon, probability, direction, model_version, status, rationale)`
+- `signal_outcomes(signal_id, evaluated_at, realized_return, labels)`
+- `paper_accounts(id, base_currency, created_at)`
+- `paper_orders(id, account_id, signal_id, symbol, side, quantity, status)`
+- `paper_fills(id, order_id, executed_at, price, quantity, fee)`
+- `cash_ledger(id, account_id, currency, amount_delta, cause_id, created_at)`
+- `positions(account_id, symbol, quantity, cost_basis)`
+- `portfolio_snapshots(account_id, as_of, equity, drawdown)`
+
+These are **logical entities**, not migrations or current tables. Decide ownership and unique constraints before coding.
+
+## Modeling safeguards and portfolio evidence
+- Respect publication/observed timestamps; no news/data leakage, no look-ahead fills.
+- Time-ordered walk-forward split with untouched evaluation period; no tuning on test data.
+- Measure calibration, precision/recall, coverage and error by market regime; then separately evaluate equity curves, costs, max drawdown, Sharpe and comparison to buy-and-hold/no-trade.
+- Log model and input dataset versions with each signal; explain factors without fabricating causation.
+- Display uncertainty, expired signals and educational/demo disclaimer.
+
+## Decisions
+- **No React rewrite by default**: React 19, Vite, TanStack Query and Zustand already provide a modern base. Audit component UX and state duplication; incrementally redesign dashboard.
+- **No new AI microservice swarm**: offline jobs + optional inference process first.
+- **No shared client implementation**: separate React web and Expo RN views, common API schemas and optionally pure TypeScript domain utilities only.
+- **No real-money execution**: paper fills are simulated and cannot be mistaken for exchange orders.
+
+See [MILESTONES.md](MILESTONES.md), [PROJECT-STRUCTURE-AND-TECH.md](PROJECT-STRUCTURE-AND-TECH.md), [MOBILE-ROADMAP.md](MOBILE-ROADMAP.md) and [RESOURCE-OPTIMIZATION.md](RESOURCE-OPTIMIZATION.md).

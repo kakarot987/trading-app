@@ -1,14 +1,9 @@
 # Delivery roadmap — real-time market analytics platform
 
 ## Quick navigation
-
-- [Milestone tracker (M1–M6)](MILESTONES.md)
-- [New target architecture diagram](TARGET-ARCHITECTURE.md)
-- [CPU and RAM optimization tasks](RESOURCE-OPTIMIZATION.md)
-
-
-> Status: planning baseline (26 October 2026). The application reportedly works locally; this document does not assert that CI, load tests or full Docker deployment have passed.
-> Scope: **market-data analytics and visualization**, not live brokerage/order execution.
+- [Canonical M1–M8 milestones](MILESTONES.md)
+- [AI platform architecture](Architecture.md)
+- [CPU/RAM optimization](RESOURCE-OPTIMIZATION.md)
 
 ## Definition of v1.0
 - Reproducible local setup (document host resource requirements).
