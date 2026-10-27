@@ -1,5 +1,8 @@
 # Target architecture — v1.0
 
+> **Current broader AI + paper trading target:** [AI-PLATFORM-ARCHITECTURE.md](AI-PLATFORM-ARCHITECTURE.md). This file remains the original market-streaming foundation diagram.
+
+
 > **Proposed architecture, not a claim of production readiness.** The four Kotlin services and React client exist, but full-stack Compose deployment, reliability guarantees and performance need verification. See [milestones](MILESTONES.md) and [architecture decisions](ARCHITECTURE-DECISIONS.md).
 
 ## Real-time and historical data paths
