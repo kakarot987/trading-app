@@ -81,6 +81,8 @@ services:
     restart: unless-stopped
 
   trade-processor:
+    profiles:
+      - full
     build:
       context: .
       dockerfile: trade-processor/Dockerfile
@@ -88,20 +90,37 @@ services:
     ports:
       - "8081:8081"
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
+
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+      # PostgreSQL (R2DBC)
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
       SPRING_R2DBC_USERNAME: trader
       SPRING_R2DBC_PASSWORD: traderpass
+
+      # Flyway (JDBC)
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/trades
+      SPRING_FLYWAY_USER: trader
+      SPRING_FLYWAY_PASSWORD: traderpass
+
+      # Redis
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: "6379"
+
     depends_on:
-      - kafka
-      - postgres
-      - redis
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+
     networks:
       - trading-network
-    restart: unless-stopped
+    restart: "no"
 
   websocket-broadcaster:
     build:

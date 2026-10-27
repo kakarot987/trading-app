@@ -6,32 +6,33 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.annotation.EnableKafka
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
-import org.springframework.kafka.core.ConsumerFactory
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory
-import org.springframework.kafka.core.DefaultKafkaProducerFactory
-import org.springframework.kafka.core.KafkaTemplate
-import org.springframework.kafka.core.ProducerFactory
+import org.springframework.kafka.core.*
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
 
 @Configuration
 @EnableKafka
-class KafkaConfig {
+class KafkaConfig(
+    private val kafkaProperties: KafkaProperties
+) {
 
     @Bean
     fun consumerFactory(): ConsumerFactory<String, TradeEvent> {
-        val props = mapOf(
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka:9092",
-            ConsumerConfig.GROUP_ID_CONFIG to "trade-processor",
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "earliest",
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
-            JsonDeserializer.TRUSTED_PACKAGES to "*"
-        )
+        val props = kafkaProperties.buildConsumerProperties().toMutableMap()
+
+        props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] =
+            StringDeserializer::class.java
+
+        props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] =
+            JsonDeserializer::class.java
+
+        props[JsonDeserializer.TRUSTED_PACKAGES] = "*"
+
         return DefaultKafkaConsumerFactory(
             props,
             StringDeserializer(),
@@ -40,19 +41,26 @@ class KafkaConfig {
     }
 
     @Bean
-    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, TradeEvent> {
-        val factory = ConcurrentKafkaListenerContainerFactory<String, TradeEvent>()
+    fun kafkaListenerContainerFactory():
+            ConcurrentKafkaListenerContainerFactory<String, TradeEvent> {
+
+        val factory =
+            ConcurrentKafkaListenerContainerFactory<String, TradeEvent>()
+
         factory.consumerFactory = consumerFactory()
         return factory
     }
 
     @Bean
     fun producerFactory(): ProducerFactory<String, ProcessedTradeEvent> {
-        val props = mapOf(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka:9092",
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java
-        )
+        val props = kafkaProperties.buildProducerProperties().toMutableMap()
+
+        props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] =
+            StringSerializer::class.java
+
+        props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] =
+            JsonSerializer::class.java
+
         return DefaultKafkaProducerFactory(props)
     }
 
@@ -61,4 +69,3 @@ class KafkaConfig {
         return KafkaTemplate(producerFactory())
     }
 }
-
