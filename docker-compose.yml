@@ -80,71 +80,71 @@ services:
       - trading-network
     restart: unless-stopped
 
-#  trade-processor:
-#    build:
-#      context: .
-#      dockerfile: trade-processor/Dockerfile
-#    container_name: trade-processor
-#    ports:
-#      - "8081:8081"
-#    environment:
-#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#      SPRING_PROFILES_ACTIVE: docker
-#      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
-#      SPRING_R2DBC_USERNAME: trader
-#      SPRING_R2DBC_PASSWORD: traderpass
-#      REDIS_HOST: redis
-#      REDIS_PORT: 6379
-#    depends_on:
-#      - kafka
-#      - postgres
-#      - redis
-#    networks:
-#      - trading-network
-#    restart: unless-stopped
-#
-#  websocket-broadcaster:
-#    build:
-#      context: .
-#      dockerfile: websocket-broadcaster/Dockerfile
-#    container_name: websocket-broadcaster
-#    environment:
-#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#      SPRING_PROFILES_ACTIVE: docker
-#    ports:
-#      - "8082:8082"
-#    depends_on:
-#      - kafka
-#    networks:
-#      - trading-network
-#    restart: unless-stopped
-#
-#  # NEW: Service 4 - Historical Data Service
-#  historical-data-service:
-#    build:
-#      context: .
-#      dockerfile: historical-service/Dockerfile
-#    container_name: historical-data-service
-#    ports:
-#      - "8084:8084"
-#    environment:
-#      SPRING_PROFILES_ACTIVE: docker
-#      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
-#      SPRING_R2DBC_USERNAME: trader
-#      SPRING_R2DBC_PASSWORD: traderpass
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/trades
-#      SPRING_DATASOURCE_USERNAME: trader
-#      SPRING_DATASOURCE_PASSWORD: traderpass
-#      REDIS_HOST: redis
-#      REDIS_PORT: 6379
-#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#      KAFKA_ENABLED: "false"  # Set to "true" if you want real-time Kafka integration
-#    depends_on:
-#      - postgres
-#      - redis
-#    networks:
-#      - trading-network
-#    restart: unless-stopped
+  trade-processor:
+    build:
+      context: .
+      dockerfile: trade-processor/Dockerfile
+    container_name: trade-processor
+    ports:
+      - "8081:8081"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
+      SPRING_R2DBC_USERNAME: trader
+      SPRING_R2DBC_PASSWORD: traderpass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - kafka
+      - postgres
+      - redis
+    networks:
+      - trading-network
+    restart: unless-stopped
+
+  websocket-broadcaster:
+    build:
+      context: .
+      dockerfile: websocket-broadcaster/Dockerfile
+    container_name: websocket-broadcaster
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8082:8082"
+    depends_on:
+      - kafka
+    networks:
+      - trading-network
+    restart: unless-stopped
+
+  # NEW: Service 4 - Historical Data Service
+  historical-data-service:
+    build:
+      context: .
+      dockerfile: historical-service/Dockerfile
+    container_name: historical-data-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
+      SPRING_R2DBC_USERNAME: trader
+      SPRING_R2DBC_PASSWORD: traderpass
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/trades
+      SPRING_DATASOURCE_USERNAME: trader
+      SPRING_DATASOURCE_PASSWORD: traderpass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_ENABLED: "false"  # Set to "true" if you want real-time Kafka integration
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - trading-network
+    restart: unless-stopped
 
   kafka-ui:
     profiles:
