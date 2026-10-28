@@ -4,7 +4,6 @@ import {
   createChart,
   type IChartApi,
   type CandlestickData,
-  type Time,
   type UTCTimestamp,
   CandlestickSeries,
   HistogramSeries,
@@ -302,13 +301,13 @@ export function HybridChart({
           )}
           
           {historicalData && (
-            <Badge variant={historicalData.fromCache ? 'success' : 'secondary'}>
+            <Badge variant={historicalData.fromCache ? 'success' : 'outline'}>
               {historicalData.fromCache ? '⚡ Cached' : '🌐 API'} •{' '}
               {historicalData.queryTimeMs}ms
             </Badge>
           )}
 
-          {isLoading && <Badge variant="secondary">Loading...</Badge>}
+          {isLoading && <Badge variant="outline">Loading...</Badge>}
 
           <Button onClick={() => refetch()} variant="ghost" size="sm">
             <RefreshCw className="w-4 h-4" />
