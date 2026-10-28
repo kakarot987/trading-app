@@ -1,5 +1,6 @@
 // src/hooks/useHistoricalData.ts
 import { useQuery, useQueries } from '@tanstack/react-query';
+import { useClock } from '@/hooks/useClock';
 import { historicalApi } from '@/services/historical-api';
 import type { CandleParams } from '@/types/historical';
 
@@ -45,7 +46,7 @@ export function useLast24HourCandles(
   interval: CandleParams['interval'] = '15m',
   enabled: boolean = true
 ) {
-  const endTime = Date.now();
+  const endTime = useClock(60_000);
   const startTime = endTime - 24 * 60 * 60 * 1000;
 
   return useCandles(
@@ -99,7 +100,7 @@ export function useBatchCandles(
   hours: number = 24,
   enabled: boolean = true
 ) {
-  const endTime = Date.now();
+  const endTime = useClock(60_000);
   const startTime = endTime - hours * 60 * 60 * 1000;
 
   return useQuery({
@@ -126,7 +127,7 @@ export function useMultiSymbolCandles(
   interval: CandleParams['interval'],
   hours: number = 24
 ) {
-  const endTime = Date.now();
+  const endTime = useClock(60_000);
   const startTime = endTime - hours * 60 * 60 * 1000;
 
   return useQueries({
