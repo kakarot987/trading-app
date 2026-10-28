@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   createChart,
   type IChartApi,
+  type ISeriesApi,
   type CandlestickData,
   type Time,
   CandlestickSeries,
@@ -26,8 +27,8 @@ export function CandleChart({
 }: CandleChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<any>(null);
-  const volumeSeriesRef = useRef<any>(null);
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize chart
@@ -67,7 +68,7 @@ export function CandleChart({
       wickDownColor: '#ef4444',
     });
 
-    let volumeSeries: any = null;
+    let volumeSeries: ISeriesApi<'Histogram'> | null = null;
     if (showVolume) {
       volumeSeries = chart.addSeries(HistogramSeries, {
         color: '#64748b',
