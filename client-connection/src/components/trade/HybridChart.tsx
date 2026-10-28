@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import {
   createChart,
   type IChartApi,
+  type ISeriesApi,
   type CandlestickData,
   type UTCTimestamp,
   CandlestickSeries,
@@ -34,7 +35,7 @@ export function HybridChart({
 }: HybridChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<any>(null);
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<any>(null);
   
   const [liveCandle, setLiveCandle] = useState<CandlestickData | null>(null);
