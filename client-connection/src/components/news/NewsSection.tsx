@@ -1,5 +1,4 @@
 // src/components/news/NewsSection.tsx
-import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { useClock } from '@/hooks/useClock';
 import { Badge } from '@/components/ui/Badge';
@@ -19,15 +18,8 @@ interface NewsSectionProps {
   maxItems?: number;
 }
 
-export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
-  const now = useClock();
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // TODO: Connect to your Service 5 (News Service)
-  useEffect(() => {
-    // Mock data for now - replace with actual API call
-    const mockNews: NewsItem[] = [
+// Mock headlines until the news service is connected.
+const mockNews: NewsItem[] = [
       {
         id: '1',
         title: 'Bitcoin reaches new all-time high above $100K',
@@ -70,10 +62,8 @@ export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
       },
     ];
 
-    setNews(mockNews);
-    setIsLoading(false);
-  }, []);
-
+export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
+  const now = useClock();
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((now - timestamp) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
@@ -115,13 +105,8 @@ export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="text-center py-8 text-slate-400">
-            Loading news...
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {news.slice(0, maxItems).map((item) => (
+        <div className="space-y-3">
+            {mockNews.slice(0, maxItems).map((item) => (
               <div
                 key={item.id}
                 className="p-3 rounded-lg border border-slate-700 hover:border-slate-600 hover:bg-slate-800 transition-colors group"
