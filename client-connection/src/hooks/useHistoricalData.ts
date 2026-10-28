@@ -1,18 +1,7 @@
 // src/hooks/useHistoricalData.ts
-import { useQuery, useQueries, type UseQueryResult } from '@tanstack/react-query';
-import {
-  historicalApi,
-  getCandlesLast24Hours,
-  getLastTrades,
-  getMultiSymbolCandles,
-} from '@/services/historical-api';
-import type {
-  CandleResponse,
-  CandleParams,
-  HistoricalTrade,
-  BatchCandleResponse,
-  HealthResponse,
-} from '@/types/historical';
+import { useQuery, useQueries } from '@tanstack/react-query';
+import { historicalApi } from '@/services/historical-api';
+import type { CandleParams } from '@/types/historical';
 
 // Query keys factory
 export const historicalKeys = {
