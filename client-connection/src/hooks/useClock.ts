@@ -6,9 +6,12 @@ export function useClock(refreshMs = 30_000): number {
 
   useEffect(() => {
     const update = () => setNow(Date.now());
-    update();
+    const initial = setTimeout(update, 0);
     const timer = setInterval(update, refreshMs);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(timer);
+    };
   }, [refreshMs]);
 
   return now;
