@@ -150,7 +150,6 @@ export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
               </div>
             ))}
           </div>
-        )}
 
         {/* TODO: Add Service 5 connection note */}
         <div className="mt-4 p-3 bg-slate-800 rounded-lg text-xs text-slate-400">
