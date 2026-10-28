@@ -1,7 +1,6 @@
 // src/components/portfolio/PortfolioHeader.tsx
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { useTradeStore } from '@/stores';
 import { formatPrice } from '@/lib/utils';
 import { 
