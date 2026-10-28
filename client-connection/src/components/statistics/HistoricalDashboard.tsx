@@ -138,7 +138,7 @@ export function HistoricalDashboard() {
                   key={symbol}
                   onClick={() => toggleSymbol(symbol)}
                   variant={
-                    selectedSymbols.includes(symbol) ? 'default' : 'outline'
+                    selectedSymbols.includes(symbol) ? 'default' : 'secondary'
                   }
                   size="sm"
                 >
@@ -159,7 +159,7 @@ export function HistoricalDashboard() {
                   key={interval}
                   onClick={() => setSelectedInterval(interval)}
                   variant={
-                    selectedInterval === interval ? 'default' : 'outline'
+                    selectedInterval === interval ? 'default' : 'secondary'
                   }
                   size="sm"
                 >
@@ -179,7 +179,7 @@ export function HistoricalDashboard() {
                 <Button
                   key={label}
                   onClick={() => setTimeRangeHours(hours)}
-                  variant={timeRangeHours === hours ? 'default' : 'outline'}
+                  variant={timeRangeHours === hours ? 'default' : 'secondary'}
                   size="sm"
                 >
                   {label}
@@ -195,7 +195,7 @@ export function HistoricalDashboard() {
             </label>
             <Button
               onClick={() => setUseBatch(!useBatch)}
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               {useBatch ? '📦 Batch API' : '⚡ Parallel Queries'}
