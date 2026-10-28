@@ -1,6 +1,7 @@
 // src/components/signals/TradingSignals.tsx
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { useClock } from '@/hooks/useClock';
 import { Badge } from '@/components/ui/Badge';
 import { Zap, Clock } from 'lucide-react';
 
@@ -22,6 +23,7 @@ interface TradingSignalsProps {
 }
 
 export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
+  const now = useClock();
   const [signals, setSignals] = useState<TradingSignal[]>([]);
 
   // TODO: Connect to your Signal Service
@@ -92,7 +94,7 @@ export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
   }, []);
 
   const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    const seconds = Math.floor((now - timestamp) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     return `${Math.floor(seconds / 3600)}h ago`;
