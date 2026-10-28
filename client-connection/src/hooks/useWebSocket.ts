@@ -14,6 +14,7 @@ export function useWebSocket<T>(
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
   const [error, setError] = useState<string | null>(null);
   const [lastConnected, setLastConnected] = useState<number | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -74,6 +75,7 @@ export function useWebSocket<T>(
     }
 
     reconnectAttemptsRef.current += 1;
+    setReconnectAttempts(reconnectAttemptsRef.current);
     const backoffDelay = Math.min(
       config.ws.reconnectInterval * Math.pow(1.5, reconnectAttemptsRef.current - 1),
       30000
@@ -123,6 +125,7 @@ export function useWebSocket<T>(
         setLastConnected(Date.now());
         setError(null);
         reconnectAttemptsRef.current = 0;
+        setReconnectAttempts(0);
         startHeartbeat();
       };
 
@@ -224,6 +227,7 @@ export function useWebSocket<T>(
     setTimeout(() => {
       isManualDisconnectRef.current = false;
       reconnectAttemptsRef.current = 0;
+      setReconnectAttempts(0);
       if (isMountedRef.current) {
         connect();
       }
@@ -260,7 +264,7 @@ export function useWebSocket<T>(
     status,
     error,
     lastConnected,
-    reconnectAttempts: reconnectAttemptsRef.current,
+    reconnectAttempts,
     subscribe,
     reconnect,
     isConnected: status === 'connected',
