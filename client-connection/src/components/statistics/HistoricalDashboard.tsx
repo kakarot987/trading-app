@@ -290,7 +290,7 @@ export function HistoricalDashboard() {
 
                 {queryData && candles.length > 0 && (
                   <div className="mt-4 text-xs text-slate-400 text-center">
-                    Updated {formatTimestamp(Date.now())}
+                    Updated {formatTimestamp(queryData?.candles?.[queryData.candles.length - 1]?.openTime ?? 0)}
                   </div>
                 )}
               </Card>
