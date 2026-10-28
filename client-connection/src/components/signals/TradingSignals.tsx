@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
-import { Target, TrendingUp, TrendingDown, Zap, Clock } from 'lucide-react';
+import { Zap, Clock } from 'lucide-react';
 
 interface TradingSignal {
   id: string;
@@ -146,7 +146,7 @@ export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
                     {signal.type}
                   </Badge>
                   <Badge
-                    variant="secondary"
+                    variant="outline"
                     className={getStrengthColor(signal.strength)}
                   >
                     {signal.strength}
