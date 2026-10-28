@@ -58,20 +58,23 @@ export function WebSocketManager() {
     setAlertWsStatus(alertWs.status);
   }, [alertWs.status, setAlertWsStatus]);
 
+  const { isConnected: tradesConnected, subscribe: subscribeTrades } = tradeWs;
+  const { isConnected: alertsConnected, subscribe: subscribeAlerts } = alertWs;
+
   // Subscribe to selected symbols when they change or when connected
   useEffect(() => {
-    if (tradeWs.isConnected && selectedSymbols.length > 0) {
+    if (tradesConnected && selectedSymbols.length > 0) {
       console.log('[Trade WebSocket] Subscribing to symbols:', selectedSymbols);
-      tradeWs.subscribe(selectedSymbols);
+      subscribeTrades(selectedSymbols);
     }
-  }, [tradeWs.isConnected, selectedSymbols, tradeWs.subscribe]);
+  }, [tradesConnected, selectedSymbols, subscribeTrades]);
 
   useEffect(() => {
-    if (alertWs.isConnected && selectedSymbols.length > 0) {
+    if (alertsConnected && selectedSymbols.length > 0) {
       console.log('[Alert WebSocket] Subscribing to symbols:', selectedSymbols);
-      alertWs.subscribe(selectedSymbols);
+      subscribeAlerts(selectedSymbols);
     }
-  }, [alertWs.isConnected, selectedSymbols, alertWs.subscribe]);
+  }, [alertsConnected, selectedSymbols, subscribeAlerts]);
 
   // Log connection errors
   useEffect(() => {
