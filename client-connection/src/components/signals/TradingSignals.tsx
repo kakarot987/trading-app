@@ -1,5 +1,4 @@
 // src/components/signals/TradingSignals.tsx
-import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { useClock } from '@/hooks/useClock';
 import { Badge } from '@/components/ui/Badge';
@@ -22,14 +21,8 @@ interface TradingSignalsProps {
   maxSignals?: number;
 }
 
-export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
-  const now = useClock();
-  const [signals, setSignals] = useState<TradingSignal[]>([]);
-
-  // TODO: Connect to your Signal Service
-  useEffect(() => {
-    // Mock signals for now - replace with actual API call
-    const mockSignals: TradingSignal[] = [
+// Mock signals until the Signal Service is connected.
+const mockSignals: TradingSignal[] = [
       {
         id: '1',
         symbol: 'BTCUSDT',
@@ -90,9 +83,8 @@ export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
       },
     ];
 
-    setSignals(mockSignals);
-  }, []);
-
+export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
+  const now = useClock();
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((now - timestamp) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
@@ -132,7 +124,7 @@ export function TradingSignals({ maxSignals = 10 }: TradingSignalsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {signals.slice(0, maxSignals).map((signal) => (
+          {mockSignals.slice(0, maxSignals).map((signal) => (
             <div
               key={signal.id}
               className="p-3 rounded-lg border border-slate-700 hover:border-slate-600 hover:bg-slate-800 transition-colors"
