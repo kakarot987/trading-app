@@ -9,6 +9,7 @@ import {
   CandlestickSeries,
   HistogramSeries,
 } from 'lightweight-charts';
+import { useClock } from '@/hooks/useClock';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -33,10 +34,11 @@ export function HybridChart({
   timeRangeHours = 24,
   height = 500,
 }: HybridChartProps) {
+  const now = useClock();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const volumeSeriesRef = useRef<any>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   
   const [liveCandle, setLiveCandle] = useState<CandlestickData | null>(null);
   const [intervalMs, setIntervalMs] = useState(15 * 60 * 1000); // 15m default
@@ -178,7 +180,7 @@ export function HybridChart({
       ) || [];
 
       // Combine historical + live candle
-      let allCandles = [...historicalCandles];
+      const allCandles = [...historicalCandles];
       
       if (liveCandle) {
         // Check if live candle is newer than last historical candle
@@ -242,7 +244,7 @@ export function HybridChart({
   }, [historicalData, liveCandle]);
 
   const liveTradeCount = liveTrades.filter(
-    t => t.timestamp >= Date.now() - intervalMs
+    t => t.timestamp >= now - intervalMs
   ).length;
 
   return (
@@ -325,7 +327,7 @@ export function HybridChart({
           {liveCandle && ' + 1 live candle'}
         </div>
         <div>
-          Updated {formatTimestamp(Date.now())}
+          Updated {formatTimestamp(now)}
         </div>
       </div>
 
