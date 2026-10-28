@@ -168,7 +168,7 @@ export const useTradeStore = create<TradeStore>()(
     {
       name: 'trade-storage',
       // Only persist essential data, not the full trade history
-      partialize: (state) => ({
+      partialize: () => ({
         // Don't persist trades to avoid localStorage quota issues
         // Only persist the structure
       }),
