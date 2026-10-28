@@ -1,5 +1,5 @@
 // src/components/charts/HybridChart.tsx
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import {
   createChart,
   type IChartApi,
@@ -40,55 +40,37 @@ export function HybridChart({
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   
-  const [liveCandle, setLiveCandle] = useState<CandlestickData | null>(null);
-  const [intervalMs, setIntervalMs] = useState(15 * 60 * 1000); // 15m default
+  const intervals: Record<CandleInterval, number> = {
+    '1m': 60_000,
+    '5m': 300_000,
+    '15m': 900_000,
+    '1h': 3_600_000,
+    '1d': 86_400_000,
+  };
+  const intervalMs = intervals[interval];
 
-  // Fetch historical data
   const { data: historicalData, isLoading, refetch } = useLast24HourCandles(
     symbol,
     interval,
     true
   );
 
-  // Calculate interval in milliseconds
-  useEffect(() => {
-    const intervals: Record<CandleInterval, number> = {
-      '1m': 60 * 1000,
-      '5m': 5 * 60 * 1000,
-      '15m': 15 * 60 * 1000,
-      '1h': 60 * 60 * 1000,
-      '1d': 24 * 60 * 60 * 1000,
-    };
-    setIntervalMs(intervals[interval]);
-  }, [interval]);
-
-  // Build current live candle from WebSocket trades
-  useEffect(() => {
-    if (!liveTrades.length) return;
-
-    const now = Date.now();
+  const liveCandle = useMemo<CandlestickData | null>(() => {
+    if (!liveTrades.length) return null;
     const currentCandleStartTime = Math.floor(now / intervalMs) * intervalMs;
-    
-    // Get trades within current candle period
     const currentPeriodTrades = liveTrades.filter(
       (trade) => trade.timestamp >= currentCandleStartTime
     );
-
-    if (currentPeriodTrades.length === 0) return;
-
-    // Build candle from trades
-    const prices = currentPeriodTrades.map((t) => t.price);
-
-    const newCandle: CandlestickData = {
+    if (!currentPeriodTrades.length) return null;
+    const prices = currentPeriodTrades.map((trade) => trade.price);
+    return {
       time: (currentCandleStartTime / 1000) as UTCTimestamp,
       open: currentPeriodTrades[0].price,
       high: Math.max(...prices),
       low: Math.min(...prices),
       close: currentPeriodTrades[currentPeriodTrades.length - 1].price,
     };
-
-    setLiveCandle(newCandle);
-  }, [liveTrades, intervalMs]);
+  }, [liveTrades, intervalMs, now]);
 
   // Initialize chart
   useEffect(() => {
