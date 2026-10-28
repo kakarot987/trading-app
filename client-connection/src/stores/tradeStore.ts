@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { persist } from 'zustand/middleware';
 import { config } from '@/config';
 import type { ProcessedTradeEvent } from '@/types';

@@ -14,6 +14,8 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.*
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
+import org.springframework.kafka.listener.DefaultErrorHandler
+import org.springframework.util.backoff.FixedBackOff
 
 @Configuration
 @EnableKafka
@@ -67,5 +69,20 @@ class KafkaConfig(
     @Bean
     fun kafkaTemplate(): KafkaTemplate<String, ProcessedTradeEvent> {
         return KafkaTemplate(producerFactory())
+    }
+
+    @Bean
+    fun kafkaErrorHandler(): DefaultErrorHandler {
+        return DefaultErrorHandler(
+            { record, exception ->
+                throw IllegalStateException(
+                    "Kafka processing failed at " +
+                            "${record.topic()}-${record.partition()} " +
+                            "offset ${record.offset()}; refusing to skip record",
+                    exception
+                )
+            },
+            FixedBackOff(1_000L, 3L)
+        )
     }
 }

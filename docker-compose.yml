@@ -45,9 +45,9 @@ services:
     image: postgres:15
     container_name: postgres
     environment:
-      POSTGRES_USER: trader
-      POSTGRES_PASSWORD: traderpass
-      POSTGRES_DB: trades
+      POSTGRES_USER: ${POSTGRES_USER:-trader}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-trades}
     ports:
       - "5432:5432"
     volumes:
@@ -99,16 +99,21 @@ services:
       # PostgreSQL (R2DBC)
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
       SPRING_R2DBC_USERNAME: trader
-      SPRING_R2DBC_PASSWORD: traderpass
+      SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
 
       # Flyway (JDBC)
       SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/trades
       SPRING_FLYWAY_USER: trader
-      SPRING_FLYWAY_PASSWORD: traderpass
+      SPRING_FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
 
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+
+      #Logging
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_KAFKA: INFO
+      LOGGING_LEVEL_COM_TRADING: DEBUG
 
     depends_on:
       kafka:
@@ -150,10 +155,10 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/trades
       SPRING_R2DBC_USERNAME: trader
-      SPRING_R2DBC_PASSWORD: traderpass
+      SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/trades
       SPRING_DATASOURCE_USERNAME: trader
-      SPRING_DATASOURCE_PASSWORD: traderpass
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092

@@ -16,8 +16,8 @@ export function useWebSocket<T>(
   const [lastConnected, setLastConnected] = useState<number | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const isManualDisconnectRef = useRef(false);
   const isMountedRef = useRef(true);
