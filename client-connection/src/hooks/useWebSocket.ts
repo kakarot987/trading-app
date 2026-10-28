@@ -22,6 +22,7 @@ export function useWebSocket<T>(
   const isManualDisconnectRef = useRef(false);
   const isMountedRef = useRef(true);
   const onMessageRef = useRef(onMessage);
+  const connectRef = useRef<() => void>(() => {});
 
   // Update onMessage ref when it changes
   useEffect(() => {
@@ -88,7 +89,7 @@ export function useWebSocket<T>(
 
     reconnectTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && enabled) {
-        connect();
+        connectRef.current();
       }
     }, backoffDelay);
   }, [enabled]);
@@ -168,6 +169,10 @@ export function useWebSocket<T>(
       }
     }
   }, [url, enabled, startHeartbeat, stopHeartbeat, attemptReconnect]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   /**
    * Disconnect from WebSocket
@@ -249,7 +254,7 @@ export function useWebSocket<T>(
         wsRef.current = null;
       }
     };
-  }, [url, enabled]); // ONLY depend on url and enabled
+  }, [url, enabled, connect, stopHeartbeat]);
 
   return {
     status,
