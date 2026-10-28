@@ -1,5 +1,5 @@
 // src/components/charts/CandleChart.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   createChart,
   type IChartApi,
@@ -29,7 +29,6 @@ export function CandleChart({
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Initialize chart
   useEffect(() => {
@@ -111,7 +110,6 @@ export function CandleChart({
   useEffect(() => {
     if (!candleSeriesRef.current || !candles.length) return;
 
-    setIsLoading(true);
 
     try {
       // Convert candles to Lightweight Charts format
@@ -139,10 +137,8 @@ export function CandleChart({
       // Fit content to visible range
       chartRef.current?.timeScale().fitContent();
 
-      setIsLoading(false);
     } catch (error) {
       console.error('Error updating chart data:', error);
-      setIsLoading(false);
     }
   }, [candles, showVolume]);
 
@@ -193,18 +189,11 @@ export function CandleChart({
         </div>
       </div>
 
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center z-20 rounded-lg">
-          <div className="text-white">Loading chart...</div>
-        </div>
-      )}
-
       {/* Chart container */}
       <div ref={chartContainerRef} className="rounded-lg overflow-hidden" />
 
       {/* No data message */}
-      {!isLoading && !candles.length && (
+      {!candles.length && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-slate-400 text-center">
             <div className="text-2xl mb-2">📊</div>
