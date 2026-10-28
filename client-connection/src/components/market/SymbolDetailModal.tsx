@@ -48,7 +48,7 @@ export function SymbolDetailModal({ symbol, onClose }: SymbolDetailModalProps) {
             <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
               <Button
                 onClick={() => setActiveTab('chart')}
-                variant={activeTab === 'chart' ? 'primary' : 'ghost'}
+                variant={activeTab === 'chart' ? 'default' : 'ghost'}
                 size="sm"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
@@ -56,7 +56,7 @@ export function SymbolDetailModal({ symbol, onClose }: SymbolDetailModalProps) {
               </Button>
               <Button
                 onClick={() => setActiveTab('trades')}
-                variant={activeTab === 'trades' ? 'primary' : 'ghost'}
+                variant={activeTab === 'trades' ? 'default' : 'ghost'}
                 size="sm"
               >
                 <Activity className="w-4 h-4 mr-2" />
@@ -80,7 +80,7 @@ export function SymbolDetailModal({ symbol, onClose }: SymbolDetailModalProps) {
                 <Button
                   key={int}
                   onClick={() => setInterval(int)}
-                  variant={interval === int ? 'primary' : 'secondary'}
+                  variant={interval === int ? 'default' : 'secondary'}
                   size="sm"
                 >
                   {int}
@@ -97,7 +97,7 @@ export function SymbolDetailModal({ symbol, onClose }: SymbolDetailModalProps) {
                 <Button
                   key={label}
                   onClick={() => setTimeRange(hours)}
-                  variant={timeRange === hours ? 'primary' : 'secondary'}
+                  variant={timeRange === hours ? 'default' : 'secondary'}
                   size="sm"
                 >
                   {label}
