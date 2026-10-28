@@ -12,14 +12,14 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useLast24HourCandles } from '@/hooks/useHistoricalData';
-import type { Trade } from '@/types';
+import type { ProcessedTradeEvent } from '@/types';
 import type { CandleInterval } from '@/types/historical';
 import { formatPrice, formatTimestamp } from '@/lib/utils';
 import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface HybridChartProps {
   symbol: string;
-  liveTrades: Trade[]; // WebSocket trades
+  liveTrades: ProcessedTradeEvent[]; // WebSocket trades
   interval?: CandleInterval;
   timeRangeHours?: number;
   height?: number;
@@ -75,7 +75,6 @@ export function HybridChart({
 
     // Build candle from trades
     const prices = currentPeriodTrades.map((t) => t.price);
-    const volumes = currentPeriodTrades.map((t) => t.volume);
 
     const newCandle: CandlestickData = {
       time: (currentCandleStartTime / 1000) as UTCTimestamp,
