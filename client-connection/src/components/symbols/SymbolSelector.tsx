@@ -29,7 +29,6 @@ export function SymbolSelector({
           </p>
           <div className="flex flex-wrap gap-2">
             {selectedSymbols.map((symbol) => {
-              const config = AVAILABLE_SYMBOLS.find((s) => s.symbol === symbol);
               return (
                 <Badge
                   key={symbol}
