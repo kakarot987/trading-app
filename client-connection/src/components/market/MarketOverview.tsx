@@ -132,7 +132,7 @@ export function MarketOverview({ symbols, onSymbolClick, compact = false }: Mark
                         <div className="text-sm font-medium text-white">
                           {formatVolume(stat.volume)}
                         </div>
-                        <Badge variant="secondary" className="text-xs mt-1">
+                        <Badge variant="outline" className="text-xs mt-1">
                           {stat.tradeCount} trades
                         </Badge>
                       </div>
