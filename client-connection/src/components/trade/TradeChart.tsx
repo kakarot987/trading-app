@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { 
   createChart, 
   type IChartApi, 
@@ -26,7 +26,6 @@ export function TradeChart({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<any>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Initialize chart
   useEffect(() => {
@@ -115,10 +114,8 @@ export function TradeChart({
 
     if (!document.fullscreenElement) {
       chartContainerRef.current.requestFullscreen();
-      setIsFullscreen(true);
     } else {
       document.exitFullscreen();
-      setIsFullscreen(false);
     }
   };
 
