@@ -4,7 +4,8 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.trading.common.model.ProcessedTradeEvent
 import com.trading.common.model.TradeEvent
 import com.trading.trade_processor.model.toEntity
-import io.r2dbc.spi.ConnectionFactories
+import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
+import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
@@ -64,9 +65,14 @@ class TradePersistenceIntegrationTest {
             }
         }
 
-        val connectionFactory = ConnectionFactories.get(
-            "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(5432)}/${postgres.databaseName}" +
-                "?user=${postgres.username}&password=${postgres.password}"
+        val connectionFactory = PostgresqlConnectionFactory(
+            PostgresqlConnectionConfiguration.builder()
+                .host(postgres.host)
+                .port(postgres.getMappedPort(5432))
+                .database(postgres.databaseName)
+                .username(postgres.username)
+                .password(postgres.password)
+                .build()
         )
         val db = DatabaseClient.create(connectionFactory)
         val service = TradePersistenceService(db, jacksonObjectMapper())
