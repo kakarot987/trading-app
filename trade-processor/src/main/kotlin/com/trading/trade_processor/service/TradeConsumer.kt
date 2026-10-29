@@ -25,6 +25,11 @@ class TradeConsumer(
     fun consume(event: TradeEvent) {
     //    logger.info("Received trade: ${event.symbol} at ${event.price}")
 
+        // Fail closed before any side effects; never create a new ID on replay.
+        require(!event.tradeId.isNullOrBlank()) {
+            "Trade ID is required for idempotent processing"
+        }
+
         // Persist to Postgres
         val entity = event.toEntity()
 
@@ -41,6 +46,8 @@ class TradeConsumer(
         ).block(Duration.ofSeconds(15))
             ?: error("Database insert returned no result for ${entity.tradeId}")
 
+        // A duplicate can be a replay after DB insertion but before publication.
+        // Republish with the same trade ID so downstream can deduplicate.
         when (insertedRows) {
             1 -> insertedCount.incrementAndGet()
             0 -> duplicateCount.incrementAndGet()
