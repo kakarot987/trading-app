@@ -14,6 +14,7 @@ import org.springframework.kafka.annotation.EnableKafka
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.*
 import org.springframework.kafka.support.serializer.JsonDeserializer
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
 import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.util.backoff.FixedBackOff
@@ -36,6 +37,8 @@ class KafkaConfig(
             StringDeserializer::class.java
 
         props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] =
+            ErrorHandlingDeserializer::class.java
+        props[ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS] =
             JsonDeserializer::class.java
 
         props[JsonDeserializer.TRUSTED_PACKAGES] = "*"
@@ -43,7 +46,7 @@ class KafkaConfig(
         return DefaultKafkaConsumerFactory(
             props,
             StringDeserializer(),
-            JsonDeserializer(TradeEvent::class.java)
+            ErrorHandlingDeserializer(JsonDeserializer(TradeEvent::class.java))
         )
     }
 
