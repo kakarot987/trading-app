@@ -14,6 +14,8 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.*
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
+import org.springframework.kafka.listener.DefaultErrorHandler
+import org.springframework.util.backoff.FixedBackOff
 
 @Configuration
 @EnableKafka
@@ -24,6 +26,9 @@ class KafkaConfig(
     @Bean
     fun consumerFactory(): ConsumerFactory<String, TradeEvent> {
         val props = kafkaProperties.buildConsumerProperties().toMutableMap()
+
+        // Spring Kafka commits only after successful listener execution.
+        props[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG] = false
 
         props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] =
             StringDeserializer::class.java
@@ -48,6 +53,7 @@ class KafkaConfig(
             ConcurrentKafkaListenerContainerFactory<String, TradeEvent>()
 
         factory.consumerFactory = consumerFactory()
+        factory.setCommonErrorHandler(kafkaErrorHandler())
         return factory
     }
 
@@ -67,5 +73,15 @@ class KafkaConfig(
     @Bean
     fun kafkaTemplate(): KafkaTemplate<String, ProcessedTradeEvent> {
         return KafkaTemplate(producerFactory())
+    }
+
+    @Bean
+    fun kafkaErrorHandler(): DefaultErrorHandler {
+        // Never treat a temporary database outage as a successfully handled trade.
+        // Infinite retries can block the partition on a permanently failing record;
+        // introduce an explicit failure classification and durable DLT before production.
+        return DefaultErrorHandler(
+            FixedBackOff(1_000L, FixedBackOff.UNLIMITED_ATTEMPTS)
+        )
     }
 }

@@ -112,7 +112,7 @@ export function HistoricalDashboard() {
         </div>
         <div className="flex items-center gap-3">
           {health && (
-            <Badge variant={health.status === 'UP' ? 'success' : 'danger'}>
+            <Badge variant={health.status === 'UP' ? 'success' : 'destructive'}>
               <Activity className="w-3 h-3 mr-1" />
               Service {health.status}
             </Badge>
@@ -138,7 +138,7 @@ export function HistoricalDashboard() {
                   key={symbol}
                   onClick={() => toggleSymbol(symbol)}
                   variant={
-                    selectedSymbols.includes(symbol) ? 'primary' : 'secondary'
+                    selectedSymbols.includes(symbol) ? 'default' : 'secondary'
                   }
                   size="sm"
                 >
@@ -159,7 +159,7 @@ export function HistoricalDashboard() {
                   key={interval}
                   onClick={() => setSelectedInterval(interval)}
                   variant={
-                    selectedInterval === interval ? 'primary' : 'secondary'
+                    selectedInterval === interval ? 'default' : 'secondary'
                   }
                   size="sm"
                 >
@@ -179,7 +179,7 @@ export function HistoricalDashboard() {
                 <Button
                   key={label}
                   onClick={() => setTimeRangeHours(hours)}
-                  variant={timeRangeHours === hours ? 'primary' : 'secondary'}
+                  variant={timeRangeHours === hours ? 'default' : 'secondary'}
                   size="sm"
                 >
                   {label}
@@ -255,13 +255,13 @@ export function HistoricalDashboard() {
                   <div className="flex items-center gap-3">
                     <h3 className="text-xl font-bold text-white">{symbol}</h3>
                     {queryLoading && (
-                      <Badge variant="secondary">Loading...</Badge>
+                      <Badge variant="outline">Loading...</Badge>
                     )}
                     {queryData && (
                       <>
                         <Badge
                           variant={
-                            queryData.fromCache ? 'success' : 'secondary'
+                            queryData.fromCache ? 'success' : 'outline'
                           }
                         >
                           {queryData.fromCache ? '⚡ Cached' : '🌐 API'}
@@ -290,7 +290,7 @@ export function HistoricalDashboard() {
 
                 {queryData && candles.length > 0 && (
                   <div className="mt-4 text-xs text-slate-400 text-center">
-                    Updated {formatTimestamp(Date.now())}
+                    Updated {formatTimestamp(queryData?.candles?.[queryData.candles.length - 1]?.openTime ?? 0)}
                   </div>
                 )}
               </Card>

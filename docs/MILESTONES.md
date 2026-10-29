@@ -1,6 +1,6 @@
 # AI signals + paper trading — staged milestones
 
-**Proposal, not claimed completed work.** Updated 2026-10-27 from the latest `main` branch after the M1 cleanup merge. Suggested 16–20 weeks part-time, adjusted to available hours.
+**Roadmap with evidence-based progress.** M1 reviewed 2026-10-28 against `milestone/M1-resource-optimization`; remaining phases are planned. Suggested 16–20 weeks part-time, adjusted to available hours.
 
 | Phase | Window | Deliverable / exit criterion |
 |---|---|---|
@@ -12,29 +12,33 @@
 | M6 Paper trading | Weeks 12–14 | Spot-only simulated orders, fees, ledger, reproducible fills and portfolio UI |
 | M7 Evaluation | Weeks 15–17 | Backtest and paper-forward tracking; benchmark vs buy-and-hold; failure analysis |
 | M8 Portfolio release | Weeks 18–20 | CI, docs, dashboards, security basics, demo and verified case study |
-| Mobile A (parallel/after M3) | 1–2 weeks | Mock API Expo demo on Android/iOS simulator/device with navigation and typed data |
+| Mobile A (parallel/after M3) | 1–2 weeks | Independent native Kotlin/Compose Android and Swift/SwiftUI iOS mock-data demos with navigation and typed data |
 | Mobile B (after M5/M6 API ready) | 2–3 weeks | Live signals/watchlist/alerts and paper portfolio using same versioned backend contract |
 
 ## Execution TODO
-### M1 — verified progress against latest `main` (2026-10-27)
-Evidence: [M1 baseline results](milestone-results/M1-BASELINE-RESULTS.md), root `.gitignore`, and Docker Compose. **Checked = specific observed subtask**, not the entire milestone.
+### M1 — resource optimization and stability (reviewed 2026-10-28)
+**Status: substantial progress, still in progress.** Evidence: [M1 resource and recovery results](milestone-results/M1-BASELINE-RESULTS.md), [local development guide](LOCAL-DEVELOPMENT.md), [resource baseline CSV](../m1-resource-baseline.csv), Compose configuration and trade-processor implementation on `milestone/M1-resource-optimization`. Checked items have specific evidence, not a claim that all edge cases were tested.
 
-- [x] Record initial per-container Docker CPU/RAM snapshots (infra-only, infra+producer, seven-container stack); snapshots are **not** sustained/peak benchmarks.
-- [x] Configure and validate infrastructure-only Compose selection plus opt-in `producer`/`tools` profiles; full-stack running was also observed later, but not a comprehensive automated smoke test.
-- [x] Configure and verify Kafka internal `kafka:9092` and host `localhost:29092` advertised listeners, and confirm consumer group participation.
-- [x] Confirm live producer → Kafka → trade processor → PostgreSQL persistence with increasing trade row count and zero consumer lag in a captured snapshot.
-- [x] Add root ignore rules for Gradle/build/IDE artifacts and environment files; tracked artifact cleanup was introduced in merged M1 baseline.
-- [ ] Verify repository hygiene is fully complete and no sensitive values were previously committed; review and rotate secrets if needed.
-- [ ] Update local development instructions to reflect current Compose profiles and seven-container results.
-- [ ] Run and record reproducible backend build/test results plus frontend lint/build.
-- [ ] Measure controlled sustained/peak Docker + WSL host CPU/RAM with comparable workloads and durations.
-- [ ] Profile high-memory containers (notably trade processor and Kafka in the recorded snapshot); apply and verify one optimization at a time.
-- [ ] Publish measured before/after CPU/RAM and latency comparison; confirm correctness and no OOM/reconnect loop.
+- [x] Capture infrastructure-only and seven-container Docker snapshots, including 0/5/10/15-minute per-container sampling.
+- [x] Configure infrastructure-only and optional `producer` / `tools` Docker profiles, and document seven-container backend launch instructions.
+- [x] Configure and verify internal/host Kafka listeners and live producer → Kafka → trade processor → PostgreSQL ingestion.
+- [x] Add Git ignore rules and remove previously tracked generated build/IDE outputs as part of baseline cleanup.
+- [x] Replace fire-and-forget DB and Redis operations with completion-aware processing, and wait for processed-event Kafka send confirmation (code-level verification).
+- [x] Add duplicate-safe insert using `ON CONFLICT (trade_id) DO NOTHING` and inserted/duplicate counters (does not prove every incoming event has a stable trade ID).
+- [x] Limit Kafka poll batch size and add a retry/error handler; test recovery from an observed consumer backlog.
+- [x] Record trade-processor Gradle compilation and test-task pass, Kafka backlog recovery and live DB growth (per results log).
+- [x] Add local development guide and documented Docker modes.
+- [ ] Verify previously exposed Alpha Vantage key was revoked/rotated and complete Git-history secret audit.
+- [ ] Capture and publish frontend build/lint plus complete multi-module backend test results.
+- [ ] Demonstrate stable IDs, redelivery/restart fault tests, bounded consumer lag and resilient retry/recovery; also tracked under M2.
+- [ ] Establish repeatable fixed-rate workload with sustained throughput and peak CPU/RAM, including host WSL/Docker overhead.
+- [ ] Profile broker coordinator timeouts and processor allocation/GC under equivalent load; verify no recurring instability.
+- [ ] Produce controlled before/after performance and latency comparison without regressions or OOMs.
 
-**Observed snapshot (not an optimization outcome):** seven containers total approximately **2,945 MiB (2.88 GiB)** according to the recorded Docker stats sum; excludes host WSL/Docker overhead. M1 remains **in progress**.
+**Measured observation (not equivalent-workload proof):** seven-container memory sum changed from 2,945.1 MiB to 2,308.5 MiB in separate snapshots (~21.6% lower). A recorded five-minute run showed 383.6 MiB trade-processor memory and later 15-minute sampling exists in the CSV. A backlog of 370,000+ messages recovered; the latest reported live-ingestion lag was 1 message. The underlying Kafka coordinator failure remains unconfirmed. **M1 exit criterion is not yet met** because controlled performance and failure testing are outstanding.
 
 ### M2
-- [ ] Verify fixes in latest TradeConsumer and Postgres schema rather than assuming old findings persist.
+- [x] Review completion-aware persistence and duplicate-safe insert in TradeConsumer/TradeRepository on the resource optimization branch; implementation inspected, not failure-tested.
 - [ ] Implement stable trade ID uniqueness, idempotent replay and failure tests.
 - [ ] Document Kafka commit/ack/retry/DLQ rules, durability and output publishing strategy.
 - [ ] Add CI and one reproducible end-to-end test.

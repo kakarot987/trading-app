@@ -13,7 +13,7 @@ constructor(url: string) {
     this.url = url;
   }
 
-  connect(onMessage: (data: any) => void) {
+  connect(onMessage: (data: { type?: string; payload?: { timestamp: number; symbol: string; price: number; volume: number; isBuy: boolean } }) => void) {
     this.ws = new WebSocket(this.url);
 
     this.ws.onopen = () => {

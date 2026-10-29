@@ -14,14 +14,16 @@ export function useWebSocket<T>(
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
   const [error, setError] = useState<string | null>(null);
   const [lastConnected, setLastConnected] = useState<number | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const isManualDisconnectRef = useRef(false);
   const isMountedRef = useRef(true);
   const onMessageRef = useRef(onMessage);
+  const connectRef = useRef<() => void>(() => {});
 
   // Update onMessage ref when it changes
   useEffect(() => {
@@ -73,6 +75,7 @@ export function useWebSocket<T>(
     }
 
     reconnectAttemptsRef.current += 1;
+    setReconnectAttempts(reconnectAttemptsRef.current);
     const backoffDelay = Math.min(
       config.ws.reconnectInterval * Math.pow(1.5, reconnectAttemptsRef.current - 1),
       30000
@@ -88,7 +91,7 @@ export function useWebSocket<T>(
 
     reconnectTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && enabled) {
-        connect();
+        connectRef.current();
       }
     }, backoffDelay);
   }, [enabled]);
@@ -122,6 +125,7 @@ export function useWebSocket<T>(
         setLastConnected(Date.now());
         setError(null);
         reconnectAttemptsRef.current = 0;
+        setReconnectAttempts(0);
         startHeartbeat();
       };
 
@@ -168,6 +172,10 @@ export function useWebSocket<T>(
       }
     }
   }, [url, enabled, startHeartbeat, stopHeartbeat, attemptReconnect]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   /**
    * Disconnect from WebSocket
@@ -219,6 +227,7 @@ export function useWebSocket<T>(
     setTimeout(() => {
       isManualDisconnectRef.current = false;
       reconnectAttemptsRef.current = 0;
+      setReconnectAttempts(0);
       if (isMountedRef.current) {
         connect();
       }
@@ -249,13 +258,13 @@ export function useWebSocket<T>(
         wsRef.current = null;
       }
     };
-  }, [url, enabled]); // ONLY depend on url and enabled
+  }, [url, enabled, connect, stopHeartbeat]);
 
   return {
     status,
     error,
     lastConnected,
-    reconnectAttempts: reconnectAttemptsRef.current,
+    reconnectAttempts,
     subscribe,
     reconnect,
     isConnected: status === 'connected',

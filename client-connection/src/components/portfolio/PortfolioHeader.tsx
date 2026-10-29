@@ -1,7 +1,7 @@
 // src/components/portfolio/PortfolioHeader.tsx
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { useClock } from '@/hooks/useClock';
 import { useTradeStore } from '@/stores';
 import { formatPrice } from '@/lib/utils';
 import { 
@@ -20,20 +20,21 @@ interface PortfolioHeaderProps {
 export function PortfolioHeader({ initialBalance = 100000 }: PortfolioHeaderProps) {
   const [showBalance, setShowBalance] = useState(true);
   const trades = useTradeStore((state) => state.trades);
+  const now = useClock();
 
   // Calculate portfolio metrics
   const metrics = useMemo(() => {
     // Mock calculations - replace with your actual portfolio logic
     const totalPnL = trades.reduce((sum, trade) => {
       // Simplified P&L calculation
-      return sum + (trade.side === 'BUY' ? -trade.price * trade.volume : trade.price * trade.volume);
+      return sum + (trade.isBuy ? -trade.price * trade.volume : trade.price * trade.volume);
     }, 0);
 
     const currentBalance = initialBalance + totalPnL;
     const totalReturn = ((currentBalance - initialBalance) / initialBalance) * 100;
     const todayPnL = trades
-      .filter((t) => t.timestamp > Date.now() - 24 * 60 * 60 * 1000)
-      .reduce((sum, trade) => sum + (trade.side === 'BUY' ? -trade.price * trade.volume : trade.price * trade.volume), 0);
+      .filter((t) => t.timestamp > now - 24 * 60 * 60 * 1000)
+      .reduce((sum, trade) => sum + (trade.isBuy ? -trade.price * trade.volume : trade.price * trade.volume), 0);
     
     const todayReturn = ((todayPnL / initialBalance) * 100);
 
@@ -44,7 +45,7 @@ export function PortfolioHeader({ initialBalance = 100000 }: PortfolioHeaderProp
       todayReturn,
       initialBalance,
     };
-  }, [trades, initialBalance]);
+  }, [trades, initialBalance, now]);
 
   const isPositiveTotal = metrics.totalReturn >= 0;
   const isPositiveToday = metrics.todayPnL >= 0;

@@ -1,26 +1,27 @@
 // src/components/charts/HybridChart.tsx
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import {
   createChart,
   type IChartApi,
+  type ISeriesApi,
   type CandlestickData,
-  type Time,
   type UTCTimestamp,
   CandlestickSeries,
   HistogramSeries,
 } from 'lightweight-charts';
+import { useClock } from '@/hooks/useClock';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useLast24HourCandles } from '@/hooks/useHistoricalData';
-import type { Trade } from '@/types';
+import type { ProcessedTradeEvent } from '@/types';
 import type { CandleInterval } from '@/types/historical';
 import { formatPrice, formatTimestamp } from '@/lib/utils';
 import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface HybridChartProps {
   symbol: string;
-  liveTrades: Trade[]; // WebSocket trades
+  liveTrades: ProcessedTradeEvent[]; // WebSocket trades
   interval?: CandleInterval;
   timeRangeHours?: number;
   height?: number;
@@ -33,61 +34,43 @@ export function HybridChart({
   timeRangeHours = 24,
   height = 500,
 }: HybridChartProps) {
+  const now = useClock();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<any>(null);
-  const volumeSeriesRef = useRef<any>(null);
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   
-  const [liveCandle, setLiveCandle] = useState<CandlestickData | null>(null);
-  const [intervalMs, setIntervalMs] = useState(15 * 60 * 1000); // 15m default
+  const intervals: Record<CandleInterval, number> = {
+    '1m': 60_000,
+    '5m': 300_000,
+    '15m': 900_000,
+    '1h': 3_600_000,
+    '1d': 86_400_000,
+  };
+  const intervalMs = intervals[interval];
 
-  // Fetch historical data
   const { data: historicalData, isLoading, refetch } = useLast24HourCandles(
     symbol,
     interval,
     true
   );
 
-  // Calculate interval in milliseconds
-  useEffect(() => {
-    const intervals: Record<CandleInterval, number> = {
-      '1m': 60 * 1000,
-      '5m': 5 * 60 * 1000,
-      '15m': 15 * 60 * 1000,
-      '1h': 60 * 60 * 1000,
-      '1d': 24 * 60 * 60 * 1000,
-    };
-    setIntervalMs(intervals[interval]);
-  }, [interval]);
-
-  // Build current live candle from WebSocket trades
-  useEffect(() => {
-    if (!liveTrades.length) return;
-
-    const now = Date.now();
+  const liveCandle = useMemo<CandlestickData | null>(() => {
+    if (!liveTrades.length) return null;
     const currentCandleStartTime = Math.floor(now / intervalMs) * intervalMs;
-    
-    // Get trades within current candle period
     const currentPeriodTrades = liveTrades.filter(
       (trade) => trade.timestamp >= currentCandleStartTime
     );
-
-    if (currentPeriodTrades.length === 0) return;
-
-    // Build candle from trades
-    const prices = currentPeriodTrades.map((t) => t.price);
-    const volumes = currentPeriodTrades.map((t) => t.volume);
-
-    const newCandle: CandlestickData = {
+    if (!currentPeriodTrades.length) return null;
+    const prices = currentPeriodTrades.map((trade) => trade.price);
+    return {
       time: (currentCandleStartTime / 1000) as UTCTimestamp,
       open: currentPeriodTrades[0].price,
       high: Math.max(...prices),
       low: Math.min(...prices),
       close: currentPeriodTrades[currentPeriodTrades.length - 1].price,
     };
-
-    setLiveCandle(newCandle);
-  }, [liveTrades, intervalMs]);
+  }, [liveTrades, intervalMs, now]);
 
   // Initialize chart
   useEffect(() => {
@@ -179,7 +162,7 @@ export function HybridChart({
       ) || [];
 
       // Combine historical + live candle
-      let allCandles = [...historicalCandles];
+      const allCandles = [...historicalCandles];
       
       if (liveCandle) {
         // Check if live candle is newer than last historical candle
@@ -243,7 +226,7 @@ export function HybridChart({
   }, [historicalData, liveCandle]);
 
   const liveTradeCount = liveTrades.filter(
-    t => t.timestamp >= Date.now() - intervalMs
+    t => t.timestamp >= now - intervalMs
   ).length;
 
   return (
@@ -302,13 +285,13 @@ export function HybridChart({
           )}
           
           {historicalData && (
-            <Badge variant={historicalData.fromCache ? 'success' : 'secondary'}>
+            <Badge variant={historicalData.fromCache ? 'success' : 'outline'}>
               {historicalData.fromCache ? '⚡ Cached' : '🌐 API'} •{' '}
               {historicalData.queryTimeMs}ms
             </Badge>
           )}
 
-          {isLoading && <Badge variant="secondary">Loading...</Badge>}
+          {isLoading && <Badge variant="outline">Loading...</Badge>}
 
           <Button onClick={() => refetch()} variant="ghost" size="sm">
             <RefreshCw className="w-4 h-4" />
@@ -326,7 +309,7 @@ export function HybridChart({
           {liveCandle && ' + 1 live candle'}
         </div>
         <div>
-          Updated {formatTimestamp(Date.now())}
+          Updated {formatTimestamp(now)}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import type { WebSocketStatus } from '@/types';

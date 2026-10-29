@@ -1,6 +1,6 @@
 // src/components/news/NewsSection.tsx
-import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import { useClock } from '@/hooks/useClock';
 import { Badge } from '@/components/ui/Badge';
 import { Newspaper, ExternalLink } from 'lucide-react';
 
@@ -18,14 +18,8 @@ interface NewsSectionProps {
   maxItems?: number;
 }
 
-export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // TODO: Connect to your Service 5 (News Service)
-  useEffect(() => {
-    // Mock data for now - replace with actual API call
-    const mockNews: NewsItem[] = [
+// Mock headlines until the news service is connected.
+const mockNews: NewsItem[] = [
       {
         id: '1',
         title: 'Bitcoin reaches new all-time high above $100K',
@@ -68,12 +62,10 @@ export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
       },
     ];
 
-    setNews(mockNews);
-    setIsLoading(false);
-  }, []);
-
+export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
+  const now = useClock();
   const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    const seconds = Math.floor((now - timestamp) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -113,13 +105,8 @@ export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="text-center py-8 text-slate-400">
-            Loading news...
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {news.slice(0, maxItems).map((item) => (
+        <div className="space-y-3">
+            {mockNews.slice(0, maxItems).map((item) => (
               <div
                 key={item.id}
                 className="p-3 rounded-lg border border-slate-700 hover:border-slate-600 hover:bg-slate-800 transition-colors group"
@@ -163,7 +150,6 @@ export function NewsSection({ maxItems = 10 }: NewsSectionProps) {
               </div>
             ))}
           </div>
-        )}
 
         {/* TODO: Add Service 5 connection note */}
         <div className="mt-4 p-3 bg-slate-800 rounded-lg text-xs text-slate-400">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { 
   createChart, 
   type IChartApi, 
@@ -25,8 +25,7 @@ export function TradeChart({
 }: TradeChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<any>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
 
   // Initialize chart
   useEffect(() => {
@@ -115,10 +114,8 @@ export function TradeChart({
 
     if (!document.fullscreenElement) {
       chartContainerRef.current.requestFullscreen();
-      setIsFullscreen(true);
     } else {
       document.exitFullscreen();
-      setIsFullscreen(false);
     }
   };
 
@@ -135,7 +132,7 @@ export function TradeChart({
             {/* Interval Selector */}
             {onIntervalChange && (
               <div className="flex items-center gap-1 rounded-lg border border-[hsl(var(--color-border))] p-1">
-                {TIME_INTERVALS.map((int: { value: any; label: any; }) => (
+                {TIME_INTERVALS.map((int) => (
                   <Button
                     key={int.value}
                     size="sm"

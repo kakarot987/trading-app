@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { persist } from 'zustand/middleware';
 import { config } from '@/config';
 import type { ProcessedTradeEvent } from '@/types';
@@ -168,7 +168,7 @@ export const useTradeStore = create<TradeStore>()(
     {
       name: 'trade-storage',
       // Only persist essential data, not the full trade history
-      partialize: (state) => ({
+      partialize: () => ({
         // Don't persist trades to avoid localStorage quota issues
         // Only persist the structure
       }),

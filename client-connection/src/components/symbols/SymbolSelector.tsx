@@ -1,8 +1,7 @@
-import { Check, Plus, X } from 'lucide-react';
-import { Button, Badge } from '@/components/ui';
+import { Check, X } from 'lucide-react';
+import { Badge } from '@/components/ui';
 import { AVAILABLE_SYMBOLS } from '@/config';
 import { cn } from '@/lib/utils';
-import type { SymbolConfig } from '@/types';
 
 interface SymbolSelectorProps {
   selectedSymbols: string[];
@@ -30,7 +29,6 @@ export function SymbolSelector({
           </p>
           <div className="flex flex-wrap gap-2">
             {selectedSymbols.map((symbol) => {
-              const config = AVAILABLE_SYMBOLS.find((s) => s.symbol === symbol);
               return (
                 <Badge
                   key={symbol}

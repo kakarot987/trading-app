@@ -13,7 +13,7 @@ export function useTradeStats(symbol: string) {
       // Custom equality check - only re-render if array length or last item changed
       if (a.length !== b.length) return false;
       if (a.length === 0 && b.length === 0) return true;
-      return a[a.length - 1]?.id === b[b.length - 1]?.id;
+      return a[a.length - 1]?.tradeId === b[b.length - 1]?.tradeId;
     }
   );
 
@@ -62,7 +62,7 @@ export function useAggregatedStats() {
   // Use a selector that returns stable references
   const allTrades = useTradeStore(
     (state) => state.trades,
-    (a, b) => a.length === b.length && (a.length === 0 || a[a.length - 1]?.id === b[b.length - 1]?.id)
+    (a, b) => a.length === b.length && (a.length === 0 || a[a.length - 1]?.tradeId === b[b.length - 1]?.tradeId)
   );
 
   const aggregated = useMemo(() => {

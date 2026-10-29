@@ -44,7 +44,7 @@ function MainDashboardView() {
     if (selectedSymbols.length === 0) {
       setSelectedSymbols(TRADING_SYMBOLS);
     }
-  }, []);
+  }, [selectedSymbols.length, setSelectedSymbols]);
 
   return (
     <>
@@ -255,7 +255,6 @@ export default function App() {
       setAlertWsStatus('disconnected');
     };
   }, [
-    USE_MOCK_DATA,
     selectedSymbols,
     addTrade,
     addAlert,
