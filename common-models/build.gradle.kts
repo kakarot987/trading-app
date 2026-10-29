@@ -15,4 +15,10 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
+    testImplementation(kotlin("test"))
+}
+
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
