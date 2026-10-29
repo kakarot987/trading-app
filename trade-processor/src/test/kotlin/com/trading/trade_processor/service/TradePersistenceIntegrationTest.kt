@@ -24,10 +24,11 @@ class TradePersistenceIntegrationTest {
     companion object {
         @Container
         @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:15")
-            .withDatabaseName("trades")
-            .withUsername("trader")
-            .withPassword("integration-test")
+        val postgres = PostgreSQLContainer<Nothing>("postgres:15").apply {
+            withDatabaseName("trades")
+            withUsername("trader")
+            withPassword("integration-test")
+        }
     }
 
     @Test
