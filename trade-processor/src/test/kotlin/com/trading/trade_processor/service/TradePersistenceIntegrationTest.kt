@@ -8,6 +8,7 @@ import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import org.springframework.r2dbc.core.DatabaseClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -100,5 +101,30 @@ class TradePersistenceIntegrationTest {
 
         assertEquals(1L, tradeCount)
         assertEquals(1L, outboxCount)
+
+        // Simulate a Kafka outage: the worker must leave the durable outbox
+        // row pending rather than acknowledging an unconfirmed send.
+        val publisher = Mockito.mock(TradePublisher::class.java)
+        Mockito.doThrow(IllegalStateException("Kafka unavailable"))
+            .`when`(publisher).publishProcessedTrade(output)
+        val worker = OutboxPublisher(db, jacksonObjectMapper(), publisher)
+        worker.publishPending()
+
+        fun pendingCount(): Long? = db.sql(
+            "SELECT COUNT(*) AS total FROM trade_outbox WHERE published_at IS NULL"
+        ).map { row, _ -> (row.get("total") as Number).toLong() }
+            .one().block(Duration.ofSeconds(5))
+
+        assertEquals(1L, pendingCount(), "Kafka failure must retain pending outbox")
+
+        // A new worker instance models recovery after process restart. The
+        // still-pending database record must be published and marked complete.
+        Mockito.reset(publisher)
+        val restartedWorker = OutboxPublisher(db, jacksonObjectMapper(), publisher)
+        restartedWorker.publishPending()
+        Mockito.verify(publisher).publishProcessedTrade(output)
+        assertEquals(0L, pendingCount(), "Successful publication clears pending outbox")
+        restartedWorker.publishPending()
+        Mockito.verifyNoMoreInteractions(publisher)
     }
 }
