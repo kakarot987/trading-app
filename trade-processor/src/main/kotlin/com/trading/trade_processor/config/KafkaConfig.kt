@@ -2,6 +2,7 @@ package com.trading.trade_processor.config
 
 import com.trading.common.model.ProcessedTradeEvent
 import com.trading.common.model.TradeEvent
+import com.trading.trade_processor.service.TradeQuarantineService
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -20,7 +21,8 @@ import org.springframework.util.backoff.FixedBackOff
 @Configuration
 @EnableKafka
 class KafkaConfig(
-    private val kafkaProperties: KafkaProperties
+    private val kafkaProperties: KafkaProperties,
+    private val quarantineService: TradeQuarantineService
 ) {
 
     @Bean
@@ -81,7 +83,15 @@ class KafkaConfig(
         // Infinite retries can block the partition on a permanently failing record;
         // introduce an explicit failure classification and durable DLT before production.
         return DefaultErrorHandler(
+            { record, exception ->
+                // A record is recovered only after the quarantine write succeeds.
+                // Database failures throw and keep the source offset unacknowledged.
+                quarantineService.quarantine(record, exception)
+            },
             FixedBackOff(1_000L, FixedBackOff.UNLIMITED_ATTEMPTS)
-        )
+        ).apply {
+            // Validation errors are permanent; infrastructure failures keep retrying.
+            addNotRetryableExceptions(IllegalArgumentException::class.java)
+        }
     }
 }
