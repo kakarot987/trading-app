@@ -1,5 +1,7 @@
 package com.trading.trade_processor.config
 
+import com.trading.trade_processor.service.TradeQuarantineService
+import org.mockito.Mockito
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -14,7 +16,7 @@ import org.springframework.kafka.listener.DefaultErrorHandler
  */
 class KafkaConfigTest {
 
-    private val config = KafkaConfig(KafkaProperties())
+    private val config = KafkaConfig(KafkaProperties(), Mockito.mock(TradeQuarantineService::class.java))
 
     @Test
     fun `consumer disables Kafka automatic offset commits`() {
