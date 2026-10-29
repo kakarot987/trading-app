@@ -1,6 +1,7 @@
 package com.trading.trade_processor.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import com.trading.common.model.ProcessedTradeEvent
 import com.trading.common.model.TradeEvent
 import com.trading.trade_processor.model.toEntity
@@ -60,6 +61,19 @@ class TradePersistenceIntegrationTest {
                         payload TEXT NOT NULL,
                         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                         published_at TIMESTAMPTZ
+                    )
+                    """.trimIndent()
+                )
+                sql.execute(
+                    """
+                    CREATE TABLE trade_quarantine (
+                        topic VARCHAR(249) NOT NULL,
+                        partition_id INTEGER NOT NULL,
+                        record_offset BIGINT NOT NULL,
+                        event_payload TEXT,
+                        failure_reason TEXT NOT NULL,
+                        quarantined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                        PRIMARY KEY (topic, partition_id, record_offset)
                     )
                     """.trimIndent()
                 )
@@ -124,6 +138,17 @@ class TradePersistenceIntegrationTest {
         restartedWorker.publishPending()
         Mockito.verify(publisher).publishProcessedTrade(output)
         assertEquals(0L, pendingCount(), "Successful publication clears pending outbox")
+
+        val quarantine = TradeQuarantineService(db, jacksonObjectMapper())
+        val invalid = ConsumerRecord<String, String>("trade-events", 0, 42L, "key", "{invalid")
+        quarantine.quarantine(invalid, IllegalArgumentException("Invalid event"))
+        quarantine.quarantine(invalid, IllegalArgumentException("Invalid event"))
+        val quarantinedRows = db.sql(
+            "SELECT COUNT(*) AS total FROM trade_quarantine WHERE topic = 'trade-events' AND record_offset = 42"
+        ).map { row, _ -> (row.get("total") as Number).toLong() }
+            .one().block(Duration.ofSeconds(5))
+        assertEquals(1L, quarantinedRows, "Quarantine writes are idempotent")
+
         restartedWorker.publishPending()
         Mockito.verifyNoMoreInteractions(publisher)
     }
