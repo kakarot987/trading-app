@@ -58,7 +58,7 @@ class BinanceWebSocketClient(
                         volume = data.get("q").asDouble(),
                         tradeTimestamp = data.get("T").asLong(),
                         side = if (data.get("m").asBoolean()) "SELL" else "BUY",
-                        tradeId = data.get("t").asText()
+                        tradeId = "BINANCE:${data.get("s").asText()}:${data.get("t").asText()}"
                     )
 
                     kafkaPublisher.publishTradeEvent(event)
