@@ -51,12 +51,9 @@ try {
     # Create a real trade and matching outbox intent while the broker is offline.
     # This simulates the state between DB commit and successful Kafka publication.
     $timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-    $payload = @{
-        tradeId=$runId; symbol='BTCUSDT'; price=70000.0; volume=0.001
-        timestamp=$timestamp; processedAt=$timestamp; latencyMs=0L
-        notionalValue=70.0; isBuy=$true
-    } | ConvertTo-Json -Compress
-    $escapedPayload = $payload.Replace("'","''")
+    # Construct JSON in PostgreSQL rather than interpolating PowerShell JSON
+    # into SQL. PowerShell native-argument quoting can strip embedded quotes.
+    # json_build_object produces valid JSON irrespective of shell escaping.
     $sql = @"
 WITH inserted AS (
  INSERT INTO trades (trade_id, symbol, exchange, price, volume, trade_timestamp, side, processed_at, latency_ms)
@@ -64,7 +61,12 @@ WITH inserted AS (
  RETURNING trade_id
 )
 INSERT INTO trade_outbox(trade_id, payload)
-SELECT trade_id, '$escapedPayload' FROM inserted;
+SELECT trade_id, json_build_object(
+    'tradeId', '$runId', 'symbol', 'BTCUSDT', 'price', 70000.0,
+    'volume', 0.001, 'timestamp', $timestamp,
+    'processedAt', $timestamp, 'latencyMs', 0,
+    'notionalValue', 70.0, 'isBuy', true
+)::text FROM inserted;
 "@
     Sql $sql | Out-Null
     $pending = Sql "SELECT COUNT(*) FROM trade_outbox WHERE trade_id = '$runId' AND published_at IS NULL;"
