@@ -13,8 +13,18 @@ if ($LASTEXITCODE -ne 0 -or [string]$count -ne '1') { throw 'M3 V6 provenance mi
 foreach ($symbol in @('BTCUSDT','ETHUSDT')) {
     $url = "https://api.binance.com/api/v3/klines?symbol=$symbol&interval=4h&startTime=$from&endTime=$($cutoff - 1)&limit=$Bars"
     Write-Host "Fetching $symbol closed 4h candles from Binance spot API..."
-    $data = @(Invoke-RestMethod -Method Get -Uri $url -TimeoutSec 30)
-    if ($data.Count -ne $Bars) { throw "$symbol response has $($data.Count) bars, expected $Bars. Nothing written for this symbol." }
+    # Binance returns an array of arrays. Invoke-RestMethod can wrap the entire
+    # outer array as one pipeline object in Windows PowerShell 5.1.
+    # Parse raw JSON and preserve the outer array explicitly.
+    $response = Invoke-WebRequest -Method Get -Uri $url -UseBasicParsing -TimeoutSec 30
+    $data = ConvertFrom-Json -InputObject $response.Content -NoEnumerate
+    if ($data -isnot [array] -or $data.Count -ne $Bars) {
+        $actual = if ($data -is [array]) { $data.Count } else { 'non-array response' }
+        throw "$symbol response has $actual bars, expected $Bars. Nothing written for this symbol."
+    }
+    if ($data[0] -isnot [array] -or $data[0].Count -lt 11) {
+        throw "$symbol response is not a Binance kline array. Nothing written."
+    }
     $items = @()
     for ($i=0; $i -lt $data.Count; $i++) {
         $k = $data[$i]
