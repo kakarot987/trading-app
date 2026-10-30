@@ -1,10 +1,11 @@
 # M5 read-only deployment acceptance. No writes or model activation.
 $ErrorActionPreference = 'Stop'
 Write-Host '=== M5 offline research signal acceptance ==='
-$sql = "SELECT CASE WHEN to_regclass('public.research_signals') IS NOT NULL THEN 'PASS' ELSE 'FAIL' END || '|V8 research_signals table';"
+$sql = "SELECT CASE WHEN to_regclass('public.research_signals') IS NOT NULL AND EXISTS (SELECT 1 FROM flyway_schema_history WHERE version = '8' AND success) THEN 'PASS' ELSE 'FAIL' END || '|V8 research_signals table';"
 $result = $sql | & docker.exe exec -i postgres psql -X -A -t -v ON_ERROR_STOP=1 -U trader -d trades
-if ($LASTEXITCODE -ne 0 -or $result -notcontains 'PASS|V8 research_signals table') {
-    throw "V8 migration not applied: $result"
+$cleanResult = @($result | ForEach-Object { $_.ToString().Trim() })
+if ($LASTEXITCODE -ne 0 -or $cleanResult -notcontains 'PASS|V8 research_signals table') {
+    throw "V8 migration verification failed: $($cleanResult -join ", ")"
 }
 Write-Host '[PASS] V8 research_signals table present'
 $base = 'http://localhost:8084/api/v1/research/signals'
