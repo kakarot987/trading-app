@@ -11,7 +11,7 @@ function Invoke-DockerNative([string[]]$Arguments) {
     return ($output -join "`n").Trim()
 }
 function Sql([string]$Query) {
-    return Invoke-DockerNative @('exec','postgres','psql','-v','ON_ERROR_STOP=1','-U','trader','-d','trades','-t','-A','-c',$Query)
+    return Invoke-DockerNative -Arguments @('exec','postgres','psql','-v','ON_ERROR_STOP=1','-U','trader','-d','trades','-t','-A','-c',$Query)
 }
 function Wait-For([string]$Name, [scriptblock]$Predicate, [int]$Seconds = 120) {
     $deadline = (Get-Date).AddSeconds($Seconds)
@@ -31,7 +31,7 @@ function Wait-For([string]$Name, [scriptblock]$Predicate, [int]$Seconds = 120) {
 }
 try {
     Write-Host "Outage acceptance run: $runId"
-    $running = (Invoke-DockerNative @('ps','--format','{{.Names}}')) -split "`n"
+    $running = (Invoke-DockerNative -Arguments @('ps','--format','{{.Names}}')) -split "`n"
     foreach ($container in @('kafka','postgres','trade-processor')) {
         if ($running -notcontains $container) { throw "Required container not running: $container" }
     }
@@ -39,11 +39,11 @@ try {
         throw 'M2 outbox migration is missing'
     }
     # Confirm the broker is healthy before causing an intentional interruption.
-    if ((Invoke-DockerNative @('inspect','kafka','--format','{{.State.Health.Status}}')) -ne 'healthy') {
+    if ((Invoke-DockerNative -Arguments @('inspect','kafka','--format','{{.State.Health.Status}}')) -ne 'healthy') {
         throw 'Kafka is not healthy; refusing outage test'
     }
     Write-Host 'Stopping Kafka broker (shared Kafka clients will temporarily disconnect)...'
-    Invoke-DockerNative @('stop','kafka') | Out-Null
+    Invoke-DockerNative -Arguments @('stop','kafka') | Out-Null
     $kafkaStopped = $true
     $results['Kafka broker stopped'] = 'PASS'
     Write-Host '[PASS] Kafka broker stopped'
@@ -78,7 +78,7 @@ SELECT trade_id, '$escapedPayload' FROM inserted;
     if ($kafkaStopped) {
         Write-Host 'Restoring Kafka broker...'
         try {
-            Invoke-DockerNative @('start','kafka') | Out-Null
+            Invoke-DockerNative -Arguments @('start','kafka') | Out-Null
             $results['Kafka restart command'] = 'PASS'
             Write-Host '[PASS] Kafka restart command'
         } catch {
@@ -90,7 +90,7 @@ SELECT trade_id, '$escapedPayload' FROM inserted;
 if (-not $results.Contains('failure') -and $results['Kafka restart command'] -eq 'PASS') {
     try {
         Wait-For 'Kafka healthy after restart' {
-            (Invoke-DockerNative @('inspect','kafka','--format','{{.State.Health.Status}}')) -eq 'healthy'
+            (Invoke-DockerNative -Arguments @('inspect','kafka','--format','{{.State.Health.Status}}')) -eq 'healthy'
         } 180
         Wait-For 'Pending outbox published after recovery' {
             (Sql "SELECT COUNT(*) FROM trade_outbox WHERE trade_id = '$runId' AND published_at IS NOT NULL;") -eq '1'
