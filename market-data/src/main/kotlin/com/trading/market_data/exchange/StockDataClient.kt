@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import java.time.Instant
+import java.util.UUID
 import jakarta.annotation.PostConstruct
 
 /**
@@ -100,7 +101,8 @@ class StockDataClient(
                 exchange = "ALPHA_VANTAGE",
                 price = price,
                 volume = volume,
-                tradeTimestamp = Instant.now().toEpochMilli()
+                tradeTimestamp = Instant.now().toEpochMilli(),
+                tradeId = "ALPHA_VANTAGE:$symbol:${UUID.randomUUID()}"
             )
         } catch (e: Exception) {
             logger.debug("❌ Alpha Vantage error for $symbol: ${e.message}")
@@ -128,7 +130,8 @@ class StockDataClient(
             exchange = "MOCK",
             price = String.format("%.2f", price).toDouble(),
             volume = (Math.random() * 1000000).toLong().toDouble(),
-            tradeTimestamp = Instant.now().toEpochMilli()
+            tradeTimestamp = Instant.now().toEpochMilli(),
+            tradeId = "MOCK:$symbol:${UUID.randomUUID()}"
         )
     }
 }

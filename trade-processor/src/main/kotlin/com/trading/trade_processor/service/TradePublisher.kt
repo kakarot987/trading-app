@@ -14,7 +14,7 @@ class TradePublisher(
 
     fun publishProcessedTrade(event: ProcessedTradeEvent) {
         try {
-            kafkaTemplate.send("processed-trade-events", event.symbol, event)
+            kafkaTemplate.send("processed-trade-events", event.tradeId, event)
                 .get(10, TimeUnit.SECONDS)
         } catch (ex: Exception) {
             logger.error("Failed to publish processed trade: ${event.tradeId}", ex)

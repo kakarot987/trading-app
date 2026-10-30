@@ -2,7 +2,6 @@
 package com.trading.common.model
 
 import java.time.Instant
-import java.util.UUID
 
 data class ProcessedTradeEvent(
     val tradeId: String,
@@ -19,7 +18,9 @@ data class ProcessedTradeEvent(
         fun from(event: TradeEvent): ProcessedTradeEvent {
             val now = Instant.now().toEpochMilli()
             return ProcessedTradeEvent(
-                tradeId = event.tradeId ?: UUID.randomUUID().toString(),
+                tradeId = requireNotNull(event.tradeId?.takeIf { it.isNotBlank() }) {
+                    "Trade ID is required for idempotent processing"
+                },
                 symbol = event.symbol.uppercase(),
                 price = event.price,
                 volume = event.volume,
