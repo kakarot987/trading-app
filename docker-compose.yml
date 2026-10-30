@@ -168,6 +168,7 @@ services:
       REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_ENABLED: "false"  # Set to "true" if you want real-time Kafka integration
+      M3_CAPTURE_ON_STARTUP: ${M3_CAPTURE_ON_STARTUP:-false} # Opt-in one-time capture for M3 acceptance
     depends_on:
       - postgres
       - redis

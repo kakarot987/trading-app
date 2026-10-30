@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy the entire repo (wrapper, settings, all modules)
 COPY . .
 
-RUN chmod +x ./gradlew
+RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
 
 # Build only the historical-service subproject
 RUN ./gradlew :historical-service:bootJar --no-daemon -x test
