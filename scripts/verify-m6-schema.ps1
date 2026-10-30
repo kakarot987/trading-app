@@ -19,7 +19,7 @@ SELECT CASE WHEN to_regprocedure('public.paper_post_fill(uuid,bigint,numeric,num
  THEN 'PASS' ELSE 'FAIL' END || '|Atomic fill function';
 SELECT CASE WHEN EXISTS (
  SELECT 1 FROM pg_trigger
- WHERE tgrelid='public.paper_ledger_entries'::regclass
+ WHERE tgrelid=to_regclass('public.paper_ledger_entries')
  AND tgname='trg_paper_ledger_immutable' AND NOT tgisinternal
 ) THEN 'PASS' ELSE 'FAIL' END || '|Immutable ledger trigger';
 '@
