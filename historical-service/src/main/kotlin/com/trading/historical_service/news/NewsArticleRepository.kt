@@ -53,7 +53,7 @@ class NewsArticleRepository(
                         """.trimIndent()
                     ).bind("id", id).bind("symbol", symbol).fetch().rowsUpdated().then()
                 }
-                Mono.when(associations).thenReturn(true)
+                Mono.`when`(associations).thenReturn(true)
             }
             .defaultIfEmpty(false)
         return transactions.transactional(write)
