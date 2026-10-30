@@ -67,12 +67,12 @@ class CryptoPanicNewsPoller(
 
     internal fun parseArticle(item: JsonNode, observedAt: Instant): NewsArticle? {
         val title = item.path("title").asText("").trim()
-        val url = item.path("url").asText("").trim()
+        val url = item.path("original_url").asText("").ifBlank { item.path("url").asText("") }.trim()
         val publishedText = item.path("published_at").asText("")
         val published = runCatching { Instant.parse(publishedText) }.getOrNull() ?: return null
         if (title.isEmpty() || title.length > 1000 || published > observedAt) return null
         if (runCatching { URI(url).scheme == "https" }.getOrDefault(false).not()) return null
-        val symbols = item.path("currencies").mapNotNull {
+        val symbols = item.path("instruments").mapNotNull {
             when (it.path("code").asText("").uppercase()) {
                 "BTC" -> "BTCUSDT"
                 "ETH" -> "ETHUSDT"
