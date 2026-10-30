@@ -105,6 +105,11 @@ services:
       SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/trades
       SPRING_FLYWAY_USER: trader
       SPRING_FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      # Trade processor and historical service share a PostgreSQL database,
+      # but their V2/V3 migrations are different. Keep independent Flyway history.
+      SPRING_FLYWAY_TABLE: flyway_trade_processor_schema_history
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
 
       # Redis
       REDIS_HOST: redis
