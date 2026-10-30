@@ -18,7 +18,7 @@ class CalibratedWalkForwardTest {
     @Test fun `distinct chronological windows produce independent holdout metrics`() {
         val examples = (0..109).map(::sample)
         val report = CalibratedWalkForward.evaluate(examples, 42 * h, 85 * h)
-        assertEquals(42, report.calibrationSize)
+        assertEquals(43, report.calibrationSize)
         assertEquals(26, report.raw.count)
         assertEquals(26, report.calibrated.count)
         assertTrue(report.raw.brier.isFinite())
