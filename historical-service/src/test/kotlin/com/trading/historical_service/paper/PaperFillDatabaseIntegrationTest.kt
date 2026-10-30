@@ -29,6 +29,8 @@ class PaperFillDatabaseIntegrationTest {
     }
 
     private fun setup(conn: Connection) {
+        // Isolated Testcontainers database: reset fixture schema between tests.
+        conn.sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
         for (migration in listOf(
             "V9__create_paper_trading_ledger.sql",
             "V10__atomic_paper_fill_posting.sql"
