@@ -5,18 +5,18 @@ $runId = 'M2ACCEPT-' + [guid]::NewGuid().ToString('N')
 $validId = "$runId-VALID"
 $invalidId = "$runId-INVALID"
 $results = [ordered]@{}
-function Docker {
+function Invoke-DockerCommand {
     param([string[]]$Arguments, [string]$InputText)
     if ($PSBoundParameters.ContainsKey('InputText')) {
-        $output = $InputText | & docker @Arguments 2>&1
+        $output = $InputText | & docker.exe @Arguments 2>&1
     } else {
-        $output = & docker @Arguments 2>&1
+        $output = & docker.exe @Arguments 2>&1
     }
     if ($LASTEXITCODE -ne 0) { throw "docker $($Arguments -join ' ') failed: $($output -join ' ')" }
     return ($output -join "`n").Trim()
 }
 function Sql([string]$Query) {
-    return Docker -Arguments @('exec','postgres','psql','-U','trader','-d','trades','-t','-A','-c',$Query)
+    return Invoke-DockerCommand -Arguments @('exec','postgres','psql','-U','trader','-d','trades','-t','-A','-c',$Query)
 }
 function WaitFor([string]$Label, [scriptblock]$Predicate, [int]$Seconds = 60) {
     $deadline = (Get-Date).AddSeconds($Seconds)
@@ -28,11 +28,11 @@ function WaitFor([string]$Label, [scriptblock]$Predicate, [int]$Seconds = 60) {
 }
 function Produce([string]$Json) {
     # Standard input is forwarded to kafka-console-producer using docker -i.
-    Docker -Arguments @('exec','-i','kafka','/opt/kafka/bin/kafka-console-producer.sh','--bootstrap-server','localhost:9092','--topic','trade-events') -InputText $Json | Out-Null
+    Invoke-DockerCommand -Arguments @('exec','-i','kafka','/opt/kafka/bin/kafka-console-producer.sh','--bootstrap-server','localhost:9092','--topic','trade-events') -InputText $Json | Out-Null
 }
 try {
     Write-Host "Acceptance run: $runId"
-    if (-not ((Docker -Arguments @('ps','--format','{{.Names}}')) -split "`n" -contains 'trade-processor')) {
+    if (-not ((Invoke-DockerCommand -Arguments @('ps','--format','{{.Names}}')) -split "`n" -contains 'trade-processor')) {
         throw 'trade-processor is not running'
     }
     if ((Sql "SELECT to_regclass('public.trade_outbox') IS NOT NULL AND to_regclass('public.trade_quarantine') IS NOT NULL;") -ne 't') {
