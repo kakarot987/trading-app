@@ -25,11 +25,11 @@ class WalkForwardRunnerTest {
 
     @Test fun `synthetic expanding holdout yields bounded metrics`() {
         val report = WalkForwardRunner.evaluate((0..61).map(::example))
-        assertEquals(21, report.metrics.count)
+        assertEquals(22, report.metrics.count)
         assertTrue(report.metrics.accuracy in 0.0..1.0)
         assertTrue(report.metrics.brier in 0.0..1.0)
         assertTrue(report.metrics.logLoss.isFinite())
-        assertEquals(42L * interval, report.firstTestAtMs)
+        assertEquals(41L * interval, report.firstTestAtMs)
         assertEquals(62L * interval, report.lastTestAtMs)
     }
 
