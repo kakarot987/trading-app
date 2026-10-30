@@ -2,7 +2,8 @@
 # and one NEW paper order. No exchange connection or real-money execution.
 # This script is intentionally NOT part of the default read-only acceptance.
 $ErrorActionPreference = 'Stop'
-$base = 'http://localhost:8084/api/v1/paper'
+$port = if ($env:M6_PAPER_TEST_PORT) { [int]$env:M6_PAPER_TEST_PORT } else { 18084 }
+$base = "http://127.0.0.1:$port/api/v1/paper"
 Write-Host '=== M6 controlled synthetic wallet/order acceptance ==='
 Write-Host 'Requires a separately configured local instance with M6_PAPER_COMMANDS_ENABLED=true.'
 $wallet = Invoke-RestMethod -Method Post -Uri "$base/wallets" -ContentType 'application/json' -Body '{"initialUsdt":"100.00000000"}' -TimeoutSec 20
