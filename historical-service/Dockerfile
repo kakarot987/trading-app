@@ -5,7 +5,8 @@ WORKDIR /app
 # Copy the entire repo (wrapper, settings, all modules)
 COPY . .
 
-RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
+RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew && \
+    sed -i 's/^networkTimeout=.*/networkTimeout=120000/' gradle/wrapper/gradle-wrapper.properties
 
 # Build only the historical-service subproject
 RUN ./gradlew :historical-service:bootJar --no-daemon -x test
