@@ -1,5 +1,5 @@
 // src/components/layout/Sidebar.tsx
-import { LayoutDashboard, Settings } from 'lucide-react';
+import { LayoutDashboard, Settings, Wallet } from 'lucide-react';
 
 interface SidebarProps {
   activeView: string;
@@ -8,6 +8,7 @@ interface SidebarProps {
 
 const navItems = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { id: 'paper', icon: Wallet, label: 'Paper Portfolio' },
   { id: 'settings', icon: Settings, label: 'Settings' },
 ];
 

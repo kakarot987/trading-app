@@ -4,14 +4,14 @@ on:
   push:
     branches:
       - main
-      - milestone/M1-resource-optimization
+      - 'milestone/**'
     paths:
       - 'client-connection/**'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches:
       - main
-      - milestone/M1-resource-optimization
+      - 'milestone/**'
     paths:
       - 'client-connection/**'
       - '.github/workflows/frontend-ci.yml'
