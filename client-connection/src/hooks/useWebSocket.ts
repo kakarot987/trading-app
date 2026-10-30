@@ -236,29 +236,42 @@ export function useWebSocket<T>(
 
   // Connect/disconnect based on enabled flag - ONLY runs when enabled or url changes
   useEffect(() => {
-    isMountedRef.current = true;
-    
-    if (enabled) {
-      isManualDisconnectRef.current = false;
-      connect();
+  isMountedRef.current = true;
+
+  let connectionTimer: ReturnType<typeof setTimeout> | undefined;
+
+  if (enabled) {
+    isManualDisconnectRef.current = false;
+
+    // Schedule connection outside the synchronous effect body
+    connectionTimer = setTimeout(() => {
+      if (isMountedRef.current) {
+        connect();
+      }
+    }, 0);
+  }
+
+  return () => {
+    isMountedRef.current = false;
+    isManualDisconnectRef.current = true;
+
+    if (connectionTimer !== undefined) {
+      clearTimeout(connectionTimer);
     }
 
-    return () => {
-      isMountedRef.current = false;
-      isManualDisconnectRef.current = true;
-      
-      stopHeartbeat();
-      
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [url, enabled, connect, stopHeartbeat]);
+    stopHeartbeat();
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = undefined;
+    }
+
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  };
+}, [url, enabled, connect, stopHeartbeat]);
 
   return {
     status,
