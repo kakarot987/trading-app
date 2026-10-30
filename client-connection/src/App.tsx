@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '@/components/ui';
 import { PortfolioHeader } from '@/components/portfolio/PortfolioHeader';
+import { PaperPortfolioView } from '@/components/portfolio/PaperPortfolioView';
 import { MarketOverview } from '@/components/market/MarketOverview';
 import { SymbolDetailModal } from '@/components/market/SymbolDetailModal';
 import { TradingSignals } from '@/components/signals/TradingSignals';
@@ -266,6 +267,8 @@ export default function App() {
     switch (activeView) {
       case 'dashboard':
         return <MainDashboardView />;
+      case 'paper':
+        return <PaperPortfolioView />;
       case 'historical':
         return <HistoricalView />;
       case 'trades':
