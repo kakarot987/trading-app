@@ -17,8 +17,8 @@ foreach ($symbol in @('BTCUSDT','ETHUSDT')) {
     # outer array as one pipeline object in Windows PowerShell 5.1.
     # Parse raw JSON and preserve the outer array explicitly.
     $response = Invoke-WebRequest -Method Get -Uri $url -UseBasicParsing -TimeoutSec 30
-    # The unary comma preserves the outer JSON array in Windows PowerShell 5.1.
-    $data = ,(ConvertFrom-Json -InputObject $response.Content)
+    # Collect each outer kline item emitted by ConvertFrom-Json in Windows PowerShell 5.1.
+    $data = @(ConvertFrom-Json -InputObject $response.Content)
     if ($data -isnot [array] -or $data.Count -ne $Bars) {
         $actual = if ($data -is [array]) { $data.Count } else { 'non-array response' }
         throw "$symbol response has $actual bars, expected $Bars. Nothing written for this symbol."
