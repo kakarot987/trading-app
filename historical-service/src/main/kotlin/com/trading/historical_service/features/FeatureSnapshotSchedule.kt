@@ -19,6 +19,14 @@ class FeatureSnapshotSchedule(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    companion object {
+        // Treat late/replayed candles as archival inputs, not timely observations.
+        const val MAX_CAPTURE_LAG_MS = 30L * 60 * 1000
+        fun isFresh(snapshot: FeatureSnapshot, observedAt: Long): Boolean =
+            snapshot.candleCloseTimeMs <= observedAt &&
+                observedAt - snapshot.candleCloseTimeMs <= MAX_CAPTURE_LAG_MS
+    }
+
     // Run after candle refresh has had time to process the latest closed bar.
     @Scheduled(cron = "0 10 0,4,8,12,16,20 * * *", zone = "UTC")
     fun capture() = captureAt(System.currentTimeMillis())
@@ -34,6 +42,9 @@ class FeatureSnapshotSchedule(
                 val snapshot = reader.computeLatest(symbol, observedAt)
                 if (snapshot == null) {
                     logger.info("No eligible contiguous 4h features for {}", symbol)
+                } else if (!isFresh(snapshot, observedAt)) {
+                    logger.warn("Skipping stale feature observation symbol={} close={} observed={} lagMs={}",
+                        symbol, snapshot.candleCloseTimeMs, observedAt, observedAt - snapshot.candleCloseTimeMs)
                 } else {
                     val count = writer.save(snapshot)
                     logger.info("4h feature snapshot symbol={} version={} candleClose={} inserted={}",
