@@ -40,7 +40,7 @@ try {
     }
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $valid = @{symbol='BTCUSDT';exchange='M2_ACCEPTANCE';price=70000.0;volume=0.001;tradeTimestamp=$now;side='BUY';trade_id=$validId} | ConvertTo-Json -Compress
-    $invalid = @{symbol='BTCUSDT';exchange='M2_ACCEPTANCE';price=70000.0;volume=0.001;tradeTimestamp=$now;side='BUY';trade_id=''} | ConvertTo-Json -Compress
+    $invalid = @{symbol='BTCUSDT';exchange=$invalidId;price=70000.0;volume=0.001;tradeTimestamp=$now;side='BUY';trade_id=''} | ConvertTo-Json -Compress
 
     Write-Host 'Publishing valid trade and duplicate replay'
     Produce $valid
