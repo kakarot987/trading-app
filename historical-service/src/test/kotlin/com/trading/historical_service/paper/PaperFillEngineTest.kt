@@ -22,7 +22,7 @@ class PaperFillEngineTest {
         assertEquals(PaperDecimal.exact("99.96000000"), fill.price)
         assertEquals(PaperDecimal.exact("9.99600000"), fill.grossQuote)
         assertEquals(PaperDecimal.exact("0.00999600"), fill.feeQuote)
-        assertEquals(PaperDecimal.exact("-9.98600400"), fill.netQuoteDebit)
+        assertEquals(BigDecimal("-9.98600400"), fill.netQuoteDebit)
     }
 
     @Test fun `cannot fill using same-time or historical ticks`() {
