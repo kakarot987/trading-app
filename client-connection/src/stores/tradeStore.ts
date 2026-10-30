@@ -42,7 +42,7 @@ interface TradeStore {
   getStatisticsBySymbol: (symbol: string) => TradeStatistics | null;
 }
 
-export const useTradeStore = create<TradeStore>()(
+export const useTradeStore = createWithEqualityFn<TradeStore>()(
   persist(
     (set, get) => ({
       trades: [],

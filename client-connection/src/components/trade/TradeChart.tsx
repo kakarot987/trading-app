@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { 
-  createChart, 
-  type IChartApi, 
+import {
+  createChart,
+  type IChartApi,
+  type ISeriesApi,
   type Time,
   LineSeries,
 } from 'lightweight-charts';

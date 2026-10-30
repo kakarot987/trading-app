@@ -28,7 +28,7 @@ interface ConnectionStore extends ConnectionState {
   // Symbol management
   addSymbol: (symbol: string) => void;
   removeSymbol: (symbol: string) => void;
-  setSymbols: (symbols: string[]) => void;
+setSelectedSymbols: (symbols: string[]) => void;
   
   // Helpers
   isFullyConnected: () => boolean;
@@ -76,7 +76,7 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
       selectedSymbols: state.selectedSymbols.filter((s) => s !== symbol),
     })),
   
-  setSymbols: (symbols) => set({ selectedSymbols: symbols }),
+  setSelectedSymbols: (symbols) => set({ selectedSymbols: symbols }),
   
   // Helper functions
   isFullyConnected: () => {

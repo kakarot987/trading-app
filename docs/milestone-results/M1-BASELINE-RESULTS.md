@@ -71,6 +71,18 @@ The latest five-minute run showed only a 0.4 MiB increase in trade-processor mem
 - Frontend TypeScript and lint issues remain separate work.
 - The previously exposed Alpha Vantage API key requires confirmed revocation or rotation.
 - A comprehensive historical secret scan remains outstanding.
+- 
+### Build and test verification — October 28, 2026
+
+- Frontend `npm run lint`: PASSED, 0 ESLint errors.
+- Frontend `npm run build`: PASSED.
+- TypeScript project compilation: PASSED.
+- Vite production build: PASSED (1,813 modules transformed in 1.06 seconds).
+- Production JavaScript bundle: 230.61 kB, 73.48 kB gzip.
+- Backend Gradle build and trade-processor tests: PASSED in earlier verification.
+- Nonblocking warning: baseline-browser-mapping dependency data is outdated.
+
+**Status:** Build and lint verification complete. Frontend runtime/integration testing and comprehensive backend test coverage have not been established by these commands.
 
 ### Conclusion
 
