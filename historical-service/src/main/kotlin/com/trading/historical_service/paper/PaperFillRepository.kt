@@ -24,7 +24,7 @@ class PaperFillRepository(private val db: DatabaseClient) {
             .bind("price", fill.price)
             .bind("gross", fill.grossQuote)
             .bind("fee", fill.feeQuote)
-            .map { row, _ -> requireNotNull(row.get("inserted", java.lang.Boolean::class.java)) }
+            .map { row, _ -> requireNotNull(row.get("inserted", java.lang.Boolean::class.java)).booleanValue() }
             .one()
     }
 }
