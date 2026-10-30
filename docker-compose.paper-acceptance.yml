@@ -1,9 +1,0 @@
-# Explicit opt-in local-only paper-command test override.
-# Apply with -f docker-compose.yml -f docker-compose.paper-acceptance.yml.
-# Never use in a publicly exposed deployment.
-services:
-  historical-data-service:
-    ports:
-      - "127.0.0.1:8084:8084"
-    environment:
-      M6_PAPER_COMMANDS_ENABLED: "true"
