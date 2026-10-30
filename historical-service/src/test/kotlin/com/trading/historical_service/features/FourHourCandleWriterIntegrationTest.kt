@@ -54,6 +54,8 @@ class FourHourCandleWriterIntegrationTest {
                         trades INTEGER NOT NULL,
                         buy_volume NUMERIC(18,8) NOT NULL,
                         notional_value NUMERIC(18,8) NOT NULL,
+                        data_source VARCHAR(32) NOT NULL DEFAULT 'local_trades',
+                        source_observed_at_ms BIGINT,
                         UNIQUE (symbol, interval_trade, open_time)
                     )
                 """.trimIndent())
