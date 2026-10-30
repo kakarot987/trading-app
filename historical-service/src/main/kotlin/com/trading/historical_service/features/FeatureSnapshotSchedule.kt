@@ -14,12 +14,12 @@ class FeatureSnapshotSchedule(
     private val writer: FeatureSnapshotWriter
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val interval = CandleSeries.FOUR_HOURS_MS
 
     // Run after candle refresh has had time to process the latest closed bar.
     @Scheduled(cron = "0 10 0,4,8,12,16,20 * * *", zone = "UTC")
-    fun capture() {
-        val observedAt = System.currentTimeMillis()
+    fun capture() = captureAt(System.currentTimeMillis())
+
+    fun captureAt(observedAt: Long) {
         for (symbol in CandleSeries.spotSymbols.sorted()) {
             try {
                 val snapshot = reader.computeLatest(symbol, observedAt)
