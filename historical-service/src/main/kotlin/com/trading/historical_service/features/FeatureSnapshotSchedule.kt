@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 class FeatureSnapshotSchedule(
     private val reader: FeatureSnapshotService,
     private val writer: FeatureSnapshotWriter,
-    @Value("\${m3.capture-on-startup:false}") private val captureOnStartup: Boolean
+    @Value("\${M3_CAPTURE_ON_STARTUP:false}") private val captureOnStartup: Boolean
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
