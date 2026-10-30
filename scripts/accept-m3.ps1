@@ -36,10 +36,10 @@ WITH expected AS (
               OR available_at_ms < candle_close_time_ms
               OR available_at_ms > (extract(epoch FROM now()) * 1000)::bigint
               OR NOT (
-                isfinite(ema12) AND isfinite(ema26) AND isfinite(rsi14)
-                AND isfinite(macd_line) AND isfinite(macd_signal)
-                AND isfinite(macd_histogram) AND isfinite(volatility20)
-                AND isfinite(volume_ratio20)
+                ema12::text NOT IN ('NaN','Infinity','-Infinity') AND ema26::text NOT IN ('NaN','Infinity','-Infinity') AND rsi14::text NOT IN ('NaN','Infinity','-Infinity')
+                AND macd_line::text NOT IN ('NaN','Infinity','-Infinity') AND macd_signal::text NOT IN ('NaN','Infinity','-Infinity')
+                AND macd_histogram::text NOT IN ('NaN','Infinity','-Infinity') AND volatility20::text NOT IN ('NaN','Infinity','-Infinity')
+                AND volume_ratio20::text NOT IN ('NaN','Infinity','-Infinity')
               )
               OR rsi14 < 0 OR rsi14 > 100 OR volatility20 < 0
               OR volume_ratio20 < 0
@@ -74,7 +74,8 @@ LEFT JOIN snapshots s USING(symbol)
 ORDER BY e.symbol;
 '@
 Write-Host '=== M3 read-only final acceptance ==='
-$rows = @(Sql $checks -split "`n")
+$output = Sql $checks
+$rows = @($output -split "`n")
 foreach ($row in $rows) { Write-Host $row }
 if ($rows.Count -ne 2 -or @($rows | Where-Object { $_ -notmatch '^(BTCUSDT|ETHUSDT)\|PASS\|' }).Count -gt 0) {
     throw 'M3 acceptance failed; inspect query output before merge.'
