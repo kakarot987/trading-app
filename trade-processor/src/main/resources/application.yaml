@@ -6,13 +6,13 @@ spring:
   r2dbc:
     url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/trades}
     username: ${SPRING_R2DBC_USERNAME:trader}
-    password: ${SPRING_R2DBC_PASSWORD:traderpass}
+    password: ${SPRING_R2DBC_PASSWORD}
 
   flyway:
     enabled: true
     url: ${SPRING_FLYWAY_URL:jdbc:postgresql://localhost:5432/trades}
     user: ${SPRING_FLYWAY_USER:trader}
-    password: ${SPRING_FLYWAY_PASSWORD:traderpass}
+    password: ${SPRING_FLYWAY_PASSWORD}
     locations: classpath:db/migration
 
   data:
