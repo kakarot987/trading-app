@@ -170,6 +170,8 @@ services:
       KAFKA_ENABLED: "false"  # Set to "true" if you want real-time Kafka integration
       M3_CAPTURE_ON_STARTUP: ${M3_CAPTURE_ON_STARTUP:-false} # Opt-in one-time capture for M3 acceptance
       M4_NEWS_ENABLED: "false" # Explicitly prevent live news polling during M4 schema acceptance
+      # INSECURE local-demo bypass; do not use on untrusted networks.
+      M8_PAPER_LOCAL_INSECURE_ENABLED: "true"
     depends_on:
       - postgres
       - redis
