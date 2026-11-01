@@ -16,14 +16,16 @@ Write-Host '[PASS] Actuator health reports UP'
 $info = Get-Json '/actuator/info'
 if ($null -eq $info) { throw 'Actuator info returned no JSON body' }
 Write-Host '[PASS] Actuator info responds'
-$metrics = Get-Json '/actuator/metrics'
-if (-not ($metrics.names -contains 'jvm.memory.used')) {
-    throw 'Expected JVM memory metric missing'
+# Metrics should be unavailable over HTTP in the hardened M8 service.
+try {
+    $null = Invoke-WebRequest -Method Get -Uri "$base/actuator/metrics" -TimeoutSec 15 -UseBasicParsing
+    throw 'Metrics are exposed over HTTP; expected HTTP 404'
+} catch {
+    if ($_.Exception.Message -like 'Metrics are exposed*') { throw }
+    $response = $_.Exception.Response
+    if ($null -eq $response -or [int]$response.StatusCode -ne 404) { throw }
 }
-if (-not ($metrics.names -contains 'process.uptime')) {
-    throw 'Expected process uptime metric missing'
-}
-Write-Host '[PASS] JVM memory and process uptime metrics available'
-Write-Host '[REVIEW] Health and metrics endpoint exposure should be restricted in production'
-Write-Host '[REVIEW] Metrics presence does not establish alerting, retention or dashboard validation'
+Write-Host '[PASS] Actuator metrics are not exposed over HTTP (404)'
+Write-Host '[REVIEW] Health/info exposure still needs production access policy'
+Write-Host '[REVIEW] Metrics HTTP restriction does not establish alerting or dashboard validation'
 Write-Host '[PASS] Read-only observability smoke complete; no rows or containers changed'
