@@ -1,0 +1,42 @@
+name: Frontend browser smoke
+
+on:
+  push:
+    branches: [main, 'milestone/**']
+    paths:
+      - 'client-connection/**'
+      - '.github/workflows/frontend-browser-smoke.yml'
+  pull_request:
+    paths:
+      - 'client-connection/**'
+      - '.github/workflows/frontend-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client-connection
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client-connection/package-lock.json
+      - name: Install locked frontend dependencies
+        run: npm ci
+      # Keep the existing production lockfile unchanged while introducing
+      # browser-test coverage. Pin the runner, and promote to a locked dev
+      # dependency in a separate dependency-update PR.
+      - name: Install pinned test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - name: Install Chromium and Linux dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run mocked API browser acceptance
+        run: npx playwright test --config playwright.config.mjs
