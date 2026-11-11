@@ -23,6 +23,27 @@ class PaperBenchmarkTest {
         assertEquals(200, comparison.endMs)
     }
 
+    @Test fun `fee-aware buy and hold states entry and exit assumptions`() {
+        val comparison = PaperBenchmark.compare(window().copy(
+            startAssetPriceUsdt = d("100"), endAssetPriceUsdt = d("110"),
+            entryCostRate = d("0.01"), exitCostRate = d("0.01")
+        ))
+        assertEquals(d("0.07821782"), comparison.buyHoldReturnFraction)
+        assertEquals(d("0.01"), comparison.benchmarkEntryCostRate)
+        assertEquals(d("0.01"), comparison.benchmarkExitCostRate)
+    }
+
+    @Test fun `rejects invalid benchmark costs`() {
+        for (rate in listOf("-0.01", "1", "1.1")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                PaperBenchmark.compare(window().copy(entryCostRate = d(rate)))
+            }
+            assertThrows(IllegalArgumentException::class.java) {
+                PaperBenchmark.compare(window().copy(exitCostRate = d(rate)))
+            }
+        }
+    }
+
     @Test fun `rejects inconsistent intervals and deposits`() {
         assertThrows(IllegalArgumentException::class.java) {
             PaperBenchmark.compare(window().copy(endMs = 100))
