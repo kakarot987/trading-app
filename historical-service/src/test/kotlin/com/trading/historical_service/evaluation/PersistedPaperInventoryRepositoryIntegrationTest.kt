@@ -5,6 +5,8 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.connection.R2dbcTransactionManager
+import com.trading.historical_service.paper.PaperWalletReadGuard
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -101,7 +103,8 @@ class PersistedPaperInventoryRepositoryIntegrationTest {
         )
         val db = DatabaseClient.create(factory)
         val inventory = PersistedPaperInventoryRepository(db)
-        val controller = PaperEvaluationController(PersistedPaperActivityRepository(db), inventory)
+        val controller = PaperEvaluationController(PersistedPaperActivityRepository(db), inventory,
+            PaperWalletReadGuard(db, R2dbcTransactionManager(factory), true))
         fun report(): PaperEvaluationReport = requireNotNull(
             controller.evaluation(wallet).block(Duration.ofSeconds(10))
         )
