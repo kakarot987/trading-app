@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service
 import java.time.Duration
 
 /**
- * Reads only completed 4h candles from PostgreSQL and refuses missing bars.
+ * Reads only completed, local-trade 4h candles from PostgreSQL and refuses gaps.\n * An as-of query must not ingest observations or revisions from the future.
  * No feature is persisted until a complete input history is available.
  */
 @Service
@@ -20,11 +20,17 @@ class FeatureSnapshotService(private val databaseClient: DatabaseClient) {
             FROM candles
             WHERE symbol = :symbol
               AND interval_trade = '240m'
+              AND data_source = 'local_trades'
               AND close_time <= :lastClose
+              -- Exclude candles revised or first observed after this as-of
+              -- timestamp; unknown legacy provenance is not safe for backtests.
+              AND source_observed_at_ms IS NOT NULL
+              AND source_observed_at_ms <= :observedAt
             ORDER BY open_time DESC
             LIMIT 120
             """.trimIndent()
         ).bind("symbol", symbol).bind("lastClose", lastClose)
+            .bind("observedAt", observedAtMs)
             .map { row, _ ->
                 fun number(name: String) = requireNotNull(row.get(name) as? Number) {
                     "Missing candle column: $name"
