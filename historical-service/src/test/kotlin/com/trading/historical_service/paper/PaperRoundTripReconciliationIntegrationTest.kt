@@ -34,7 +34,8 @@ class PaperRoundTripReconciliationIntegrationTest {
     private fun Connection.migrate() {
         for (migration in listOf(
             "V9__create_paper_trading_ledger.sql",
-            "V10__atomic_paper_fill_posting.sql"
+            "V10__atomic_paper_fill_posting.sql",
+                    "V11__reject_conflicting_paper_fill_replay.sql"
         )) {
             val ddl = javaClass.getResourceAsStream("/db/migration/$migration")!!
                 .bufferedReader().use { it.readText() }
