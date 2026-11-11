@@ -158,7 +158,7 @@ class TradePersistenceIntegrationTest {
         // Downstream consumers must deduplicate by this stable key.
         val resetRows = db.sql(
             "UPDATE trade_outbox SET published_at = NULL WHERE trade_id = :tradeId"
-        ).bind("tradeId", event.tradeId)
+        ).bind("tradeId", requireNotNull(event.tradeId))
             .fetch().rowsUpdated().block(Duration.ofSeconds(5))
         assertEquals(1L, resetRows)
         assertEquals(1L, pendingCount(), "Simulated crash retains pending publish intent")
