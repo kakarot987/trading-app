@@ -27,7 +27,7 @@ class PaperWalletAccessStore(private val db: DatabaseClient) {
         ).bind("wallet", walletId)
             .bind("hash", PaperWalletTokens.sha256(token))
             .map { row, _ ->
-                row.get("permitted", java.lang.Boolean::class.java) == true
+                java.lang.Boolean.TRUE.equals(row.get("permitted", java.lang.Boolean::class.java))
             }.one().defaultIfEmpty(false)
             .onErrorReturn(false)
     }
