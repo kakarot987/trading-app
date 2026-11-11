@@ -45,7 +45,6 @@ class PaperWalletReadGuard(
         DefaultTransactionDefinition().apply {
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
             isolationLevel = TransactionDefinition.ISOLATION_REPEATABLE_READ
-            name = "paper-wallet-consistent-read"
         }
     )
 
