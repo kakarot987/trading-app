@@ -41,7 +41,7 @@ class KafkaConfig(
         props[ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS] =
             JsonDeserializer::class.java
 
-        props[JsonDeserializer.TRUSTED_PACKAGES] = "*"
+        props[JsonDeserializer.TRUSTED_PACKAGES] = "com.trading.common.model"
 
         return DefaultKafkaConsumerFactory(
             props,
@@ -71,6 +71,14 @@ class KafkaConfig(
 
         props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] =
             JsonSerializer::class.java
+
+        // The outbox marks a row published only after broker acknowledgment.
+        // These settings reduce unacknowledged loss and duplicate sends
+        // during transient producer retries; they do NOT provide end-to-end
+        // exactly-once delivery across the database and Kafka.
+        props[ProducerConfig.ACKS_CONFIG] = "all"
+        props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = true
+        props[ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION] = 5
 
         return DefaultKafkaProducerFactory(props)
     }
