@@ -4,7 +4,7 @@ import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
 import org.testcontainers.containers.PostgreSQLContainer
@@ -87,8 +87,9 @@ class FeatureSnapshotServiceIntegrationTest {
         assertNotNull(btc, "Expected 40 historically observed contiguous candles")
         assertEquals(cutoff, btc!!.candleCloseTimeMs)
         assertEquals(cutoff, btc.availableAtMs)
-        assertNull(service.computeLatest("ETHUSDT", cutoff),
-            "A missing local candle cannot be replaced by a foreign-source candle")
+        assertThrows(IllegalArgumentException::class.java) {
+            service.computeLatest("ETHUSDT", cutoff)
+        }
         // A candle with a close time after the cutoff and unknown provenance
         // may not contribute to an earlier calculation.
         assertEquals(btc, service.computeLatest("BTCUSDT", cutoff))
