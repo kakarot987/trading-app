@@ -72,8 +72,14 @@ object PaperFillEngine {
         submittedAtMs: Long,
         ticks: List<PaperMarketTick>,
         costs: PaperExecutionCosts = PaperExecutionCosts()
-    ): PaperFill? = ticks.asSequence()
-        .filter { it.symbol == order.symbol && it.timestampMs > submittedAtMs }
-        .sortedWith(compareBy<PaperMarketTick> { it.timestampMs }.thenBy { it.midPrice })
-        .firstOrNull()?.let { fill(order, submittedAtMs, it, costs) }
+    ): PaperFill? {
+        val eligible = ticks.filter { it.symbol == order.symbol && it.timestampMs > submittedAtMs }
+        val earliest = eligible.minOfOrNull { it.timestampMs } ?: return null
+        val candidates = eligible.filter { it.timestampMs == earliest }
+        val midPrice = candidates.first().midPrice
+        require(candidates.all { it.midPrice.compareTo(midPrice) == 0 }) {
+            "Ambiguous prices at the first future tick; refusing favorable tick selection"
+        }
+        return fill(order, submittedAtMs, candidates.first(), costs)
+    }
 }
