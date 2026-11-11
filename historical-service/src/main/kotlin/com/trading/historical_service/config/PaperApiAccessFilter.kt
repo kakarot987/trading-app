@@ -31,16 +31,29 @@ class PaperApiAccessFilter(
         if (path != "/api/v1/paper" && !path.startsWith("/api/v1/paper/")) {
             return chain.filter(exchange)
         }
+        // Wallet balances, order history and evaluations must never be cached
+        // by a browser/proxy, even when an explicit private demo bypass is on.
+        exchange.response.headers.set("Cache-Control", "no-store")
+        exchange.response.headers.set("Pragma", "no-cache")
+        exchange.response.headers.add("Vary", "Authorization")
+        exchange.response.headers.set("X-Content-Type-Options", "nosniff")
         if (localInsecure) return chain.filter(exchange)
-        val header = exchange.request.headers.getFirst("Authorization") ?: ""
-        val token = if (header.startsWith("Bearer ")) header.substring(7) else ""
+
+        // Reject duplicate/malformed headers; getFirst() alone would accept
+        // a valid first Authorization even when a second is also present.
+        val auth = exchange.request.headers["Authorization"].orEmpty()
+        val header = auth.singleOrNull().orEmpty()
+        val token = if (header.startsWith("Bearer ") &&
+            header.length > 7 && !header.substring(7).contains(' ')) {
+            header.substring(7)
+        } else ""
         val expected = configuredToken.toByteArray(StandardCharsets.UTF_8)
         val provided = token.toByteArray(StandardCharsets.UTF_8)
-        if (expected.size >= 32 && MessageDigest.isEqual(expected, provided)) {
+        if (expected.size >= 32 && provided.size == expected.size &&
+            MessageDigest.isEqual(expected, provided)) {
             return chain.filter(exchange)
         }
         exchange.response.statusCode = HttpStatus.UNAUTHORIZED
-        exchange.response.headers.set("Cache-Control", "no-store")
         return exchange.response.setComplete()
     }
 }

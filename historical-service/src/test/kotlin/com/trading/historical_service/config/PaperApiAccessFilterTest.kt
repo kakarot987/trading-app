@@ -1,6 +1,7 @@
 package com.trading.historical_service.config
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
@@ -33,6 +34,39 @@ class PaperApiAccessFilterTest {
         val filter = PaperApiAccessFilter(false, token)
         assertEquals(1, request(filter, "/api/v1/paper/wallets", "Bearer $token").second)
         assertEquals(HttpStatus.UNAUTHORIZED, request(filter, "/api/v1/paper/wallets", "Bearer wrong").first)
+    }
+
+    @Test fun `paper responses disable caching in both secure and demo modes`() {
+        for (localDemo in listOf(false, true)) {
+            val filter = PaperApiAccessFilter(localDemo, token)
+            val exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/paper/wallets")
+            )
+            filter.filter(exchange, WebFilterChain { Mono.empty() }).block()
+            assertEquals("no-store", exchange.response.headers.getFirst("Cache-Control"))
+            assertEquals("no-cache", exchange.response.headers.getFirst("Pragma"))
+            assertEquals("nosniff", exchange.response.headers.getFirst("X-Content-Type-Options"))
+            assertTrue(exchange.response.headers["Vary"].orEmpty().contains("Authorization"))
+        }
+    }
+
+    @Test fun `duplicate or malformed authorization does not bypass guard`() {
+        val filter = PaperApiAccessFilter(false, token)
+        val headers = listOf(
+            listOf("Bearer $token", "Bearer wrong"),
+            listOf("bearer $token"),
+            listOf("Bearer  $token"),
+            listOf("Bearer $token ")
+        )
+        for (values in headers) {
+            val builder = MockServerHttpRequest.get("/api/v1/paper/wallets")
+            builder.header("Authorization", *values.toTypedArray())
+            val exchange = MockServerWebExchange.from(builder)
+            val calls = AtomicInteger()
+            filter.filter(exchange, WebFilterChain { calls.incrementAndGet(); Mono.empty() }).block()
+            assertEquals(HttpStatus.UNAUTHORIZED, exchange.response.statusCode)
+            assertEquals(0, calls.get())
+        }
     }
 
     @Test fun `unrelated routes pass and local override is explicit`() {

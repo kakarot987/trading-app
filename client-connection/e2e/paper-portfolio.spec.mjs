@@ -27,6 +27,7 @@ const sampleEvaluation = {
     'Returns and drawdown unavailable: validated chronological equity marks required.',
   ],
   inventory: null,
+  realizedInventory: null,
   equity: null,
   intervalRisk: null,
   benchmark: null,
@@ -94,4 +95,36 @@ test('unauthorized wallet reads display error without showing stale balances or 
   await expect(page.getByRole('alert')).toContainText('Portfolio API unavailable');
   await expect(page.getByText('No balances loaded.')).toBeVisible();
   expect(methods).toEqual(['GET', 'GET', 'GET']);
+});
+
+test('realized paper inventory is labeled distinctly from unmarked portfolio returns', async ({ page }) => {
+  const sampleRealized = {
+    ...sampleEvaluation,
+    activity: { fillCount: 2, tradedNotionalUsdt: '21.00400000',
+      paidFeesUsdt: '0.02100400', quoteLedgerNetUsdt: '0.97499600' },
+    realizedInventory: [{
+      asset: 'BTC', fillCount: 2, remainingQuantity: '0.00000000',
+      remainingCostBasisUsdt: '0.00000000', realizedPnlUsdt: '0.97499600',
+      netQuoteMovementUsdt: '0.97499600'
+    }]
+  };
+  const requests = [];
+  await page.route('**/api/v1/paper/**', async (route) => {
+    requests.push(route.request().method());
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/balances')) return route.fulfill({ json: sampleBalance });
+    if (path.endsWith('/orders')) return route.fulfill({ json: sampleOrders });
+    if (path.endsWith('/evaluation')) return route.fulfill({ json: sampleRealized });
+    return route.fulfill({ status: 404 });
+  });
+  await page.goto('/');
+  await page.getByTitle('Paper Portfolio').click();
+  await page.getByLabel('Paper wallet ID (UUID)').fill(walletId);
+  await page.getByRole('button', { name: 'Load wallet' }).click();
+  await expect(page.getByText('Realized paper inventory (USDT)')).toBeVisible();
+  await expect(page.getByText('0.97499600')).toBeVisible();
+  await expect(page.getByText('Realized P&L is not total portfolio', { exact: false })).toBeVisible();
+  await expect(page.getByText('Returns and drawdown unavailable', { exact: false })).toBeVisible();
+  expect(requests.length).toBeGreaterThan(0);
+  expect(requests.every((method) => method === 'GET')).toBe(true);
 });

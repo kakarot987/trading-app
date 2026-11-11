@@ -39,7 +39,7 @@ server:
 logging:
   level:
     root: INFO
-    com.trading.historical_service: DEBUG
+    com.trading.historical_service: INFO
 
 # Management endpoints
 management:
