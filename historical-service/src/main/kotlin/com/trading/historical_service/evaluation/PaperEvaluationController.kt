@@ -29,9 +29,10 @@ class PaperEvaluationController(
         authorization: String = ""
     ): Mono<PaperEvaluationReport> =
         readGuard.mono(walletId, authorization,
-            Mono.zip(activityRepository.summarize(walletId),
-                inventoryRepository.summarize(walletId)).map { pair ->
-                PaperEvaluationReports.assemble(pair.t1, realizedInventory = pair.t2)
+            activityRepository.summarize(walletId).flatMap { activity ->
+                inventoryRepository.summarize(walletId).map { inventory ->
+                    PaperEvaluationReports.assemble(activity, realizedInventory = inventory)
+                }
             }
         )
 }

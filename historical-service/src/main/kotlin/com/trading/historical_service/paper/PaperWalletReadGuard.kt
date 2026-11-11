@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Component
 import org.springframework.transaction.ReactiveTransactionManager
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.support.DefaultTransactionDefinition
 import org.springframework.transaction.reactive.TransactionalOperator
 import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Flux
@@ -15,7 +17,8 @@ import java.util.UUID
  * Transaction-bound read admission for private paper wallets.
  *
  * A valid capability must still match the wallet when PostgreSQL admits
- * each read. The FOR SHARE lock is held until the read transaction completes,
+ * each read. Each guarded request gets a REPEATABLE READ MVCC snapshot; the
+ * FOR SHARE lock is held until the read transaction completes,
  * serializing it with M11's credential UPDATE for rotation and revocation.
  * No API token is persisted or included in read response bodies.
  *
@@ -29,7 +32,21 @@ class PaperWalletReadGuard(
     @Value("\${M8_PAPER_LOCAL_INSECURE_ENABLED:false}")
     private val localInsecure: Boolean
 ) {
-    private val transactions = TransactionalOperator.create(transactionManager)
+    // READ COMMITTED permits each activity/inventory query to observe a new
+    // fill state. A dedicated REPEATABLE READ transaction takes one stable
+    // PostgreSQL MVCC snapshot for the entire authorized read.
+    //
+    // We deliberately do NOT set transaction readOnly=true: PostgreSQL
+    // forbids SELECT ... FOR SHARE in read-only transactions. This code
+    // executes only SELECTs, and the FOR SHARE lock still coordinates with
+    // credential UPDATEs from rotation/revocation.
+    private val transactions = TransactionalOperator.create(
+        transactionManager,
+        DefaultTransactionDefinition().apply {
+            propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
+            isolationLevel = TransactionDefinition.ISOLATION_REPEATABLE_READ
+        }
+    )
 
     private fun lockCredential(walletId: UUID, authorization: String): Mono<Void> = Mono.defer {
         val token = if (authorization.startsWith("Bearer ")) {

@@ -16,6 +16,9 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.sql.DriverManager
 import java.time.Duration
+import java.math.BigDecimal
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 
 /** Real R2DBC transactional reads backed by disposable PostgreSQL. */
 @Testcontainers
@@ -80,6 +83,43 @@ class PaperWalletReadGuardIntegrationTest {
         assertEquals(0, balances(old).single().available.compareTo(java.math.BigDecimal("100")))
         assertEquals(emptyList<PaperOrderView>(), orders(old))
         assertEquals(0L, evaluation(old).activity.fillCount)
+
+        // Prove the stable DB snapshot, not merely a transaction annotation.
+        // An independent JDBC connection commits a balance change between
+        // TWO reads inside the SAME reactive authorized transaction. A
+        // READ COMMITTED transaction would see 100 then 105; REPEATABLE READ
+        // must show 100 both times, then 105 on the next transaction.
+        fun balanceQuery() = db.sql(
+            "SELECT available FROM paper_balances WHERE wallet_id=:wallet AND asset='USDT'"
+        ).bind("wallet", wallet)
+            .map { row, _ ->
+                requireNotNull(row.get("available", BigDecimal::class.java))
+            }.one()
+        val stable = requireNotNull(guard.mono(wallet, old,
+            balanceQuery().flatMap { firstRead ->
+                Mono.fromCallable {
+                    DriverManager.getConnection(
+                        postgres.jdbcUrl, postgres.username, postgres.password
+                    ).use { connection ->
+                        connection.prepareStatement(
+                            "UPDATE paper_balances SET available=available+5 WHERE wallet_id=? AND asset='USDT'"
+                        ).use { statement ->
+                            statement.setObject(1, wallet)
+                            statement.executeUpdate()
+                        }
+                    }
+                }.subscribeOn(Schedulers.boundedElastic()).flatMap { updated ->
+                    assertEquals(1, updated, "The concurrent write must commit independently")
+                    balanceQuery().map { secondRead -> firstRead to secondRead }
+                }
+            }
+        ).block(Duration.ofSeconds(25)))
+        assertEquals(0, stable.first.compareTo(BigDecimal("100")))
+        assertEquals(0, stable.second.compareTo(BigDecimal("100")),
+            "Both queries must see the same committed snapshot")
+        assertEquals(0, balances(old).single().available.compareTo(BigDecimal("105")),
+            "The next transaction should see the newly committed balance")
+
         denied { balances("") }
         denied { orders("Bearer ${other.walletToken}") }
         denied { evaluation("Bearer ${other.walletToken}") }
