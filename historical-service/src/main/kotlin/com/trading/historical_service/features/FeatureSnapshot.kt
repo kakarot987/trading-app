@@ -35,21 +35,25 @@ object FeatureSnapshots {
         observedAtMs: Long
     ): FeatureSnapshot? {
         require(symbol in CandleSeries.spotSymbols) { "Unsupported spot symbol: $symbol" }
-        if (candles.isEmpty()) return null
-        val bars = candles.sortedBy { it.openTimeMs }
+        // Filter by the observation cutoff BEFORE validating continuity. A
+        // historical as-of evaluation must not depend on future candles or
+        // gaps that exist only after that evaluation time.
         val interval = CandleSeries.FOUR_HOURS_MS
-        require(bars.all {
+        val closed = candles.asSequence()
+            .filter { it.closeTimeMs <= observedAtMs }
+            .sortedBy { it.openTimeMs }
+            .toList()
+        if (closed.isEmpty()) return null
+        require(closed.all {
             it.openTimeMs >= 0L &&
                 it.openTimeMs % interval == 0L &&
                 it.closeTimeMs == it.openTimeMs + interval &&
                 it.close.isFinite() && it.close > 0 &&
                 it.volume.isFinite() && it.volume >= 0
-        }) { "Invalid or unaligned 4h candle" }
-        require(bars.zipWithNext().all { (a, b) ->
+        }) { "Invalid or unaligned closed 4h candle" }
+        require(closed.zipWithNext().all { (a, b) ->
             b.openTimeMs == a.closeTimeMs
-        }) { "Missing or overlapping 4h candles" }
-        // Complete history after the observation time must never be consumed.
-        val closed = bars.takeWhile { it.closeTimeMs <= observedAtMs }
+        }) { "Missing or overlapping closed 4h candles" }
         if (closed.size < 35) return null
         val closes = closed.map { it.close }
         val volumes = closed.map { it.volume }
