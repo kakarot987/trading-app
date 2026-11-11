@@ -1,0 +1,55 @@
+name: Private demo acceptance tooling
+
+on:
+  push:
+    branches: [main, 'milestone/**']
+    paths:
+      - 'scripts/private_demo_acceptance.py'
+      - 'tests/test_private_demo_acceptance.py'
+      - 'docs/milestone-results/M16-PRIVATE-DEMO-ACCEPTANCE.md'
+      - '.github/workflows/private-demo-acceptance.yml'
+  pull_request:
+    paths:
+      - 'scripts/private_demo_acceptance.py'
+      - 'tests/test_private_demo_acceptance.py'
+      - 'docs/milestone-results/M16-PRIVATE-DEMO-ACCEPTANCE.md'
+      - '.github/workflows/private-demo-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-acceptance-tooling:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile acceptance runner and regression tests
+        run: python -m compileall -q scripts/private_demo_acceptance.py tests/test_private_demo_acceptance.py
+      - name: Test read-only runner with offline fixtures
+        run: python -m unittest discover -s tests -p test_private_demo_acceptance.py -v
+      - name: Generate informational repository evidence
+        run: python scripts/private_demo_acceptance.py --mode offline --report private-demo-evidence.json
+      - name: Verify no live checks or production verdict claimed
+        run: |
+          python - <<'PY'
+          import json
+          with open('private-demo-evidence.json', encoding='utf-8') as f:
+              report = json.load(f)
+          assert report['mode'] == 'offline-repository-references'
+          assert report['release_decision'] == 'NOT_EVALUATED'
+          assert report['summary']['failed'] == 0
+          assert len(report['checks']) == 1
+          assert report['checks'][0]['id'] == 'repository_phase_references'
+          print('Static references checked. Live acceptance not evaluated.')
+          PY
+      - name: Upload informational evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-demo-offline-evidence
+          path: private-demo-evidence.json
+          retention-days: 14
