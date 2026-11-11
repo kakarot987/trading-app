@@ -3,6 +3,8 @@ package com.trading.trade_processor.config
 import com.trading.trade_processor.service.TradeQuarantineService
 import org.mockito.Mockito
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -30,6 +32,22 @@ class KafkaConfigTest {
     fun `malformed JSON is handled by the error handler rather than stopping the consumer`() {
         val properties = config.consumerFactory().configurationProperties
         assertEquals(ErrorHandlingDeserializer::class.java, properties[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG])
+    }
+
+    @Test
+    fun `producer requires broker acknowledgments and idempotence`() {
+        val properties = config.producerFactory().configurationProperties
+
+        assertEquals("all", properties[ProducerConfig.ACKS_CONFIG])
+        assertEquals(true, properties[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG])
+        assertEquals(5, properties[ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION])
+    }
+
+    @Test
+    fun `JSON trade deserialization uses a restricted trusted package`() {
+        val properties = config.consumerFactory().configurationProperties
+
+        assertEquals("com.trading.common.model", properties[JsonDeserializer.TRUSTED_PACKAGES])
     }
 
     @Test

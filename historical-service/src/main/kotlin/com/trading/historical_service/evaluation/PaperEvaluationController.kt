@@ -14,8 +14,14 @@ import java.util.UUID
  */
 @RestController
 @RequestMapping("/api/v1/paper/wallets")
-class PaperEvaluationController(private val activityRepository: PersistedPaperActivityRepository) {
+class PaperEvaluationController(
+    private val activityRepository: PersistedPaperActivityRepository,
+    private val inventoryRepository: PersistedPaperInventoryRepository
+) {
     @GetMapping("/{walletId}/evaluation")
     fun evaluation(@PathVariable walletId: UUID): Mono<PaperEvaluationReport> =
-        activityRepository.summarize(walletId).map(PaperEvaluationReports::assemble)
+        Mono.zip(activityRepository.summarize(walletId),
+            inventoryRepository.summarize(walletId)).map { pair ->
+            PaperEvaluationReports.assemble(pair.t1, realizedInventory = pair.t2)
+        }
 }

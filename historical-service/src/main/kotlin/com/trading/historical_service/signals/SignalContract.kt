@@ -5,6 +5,9 @@ import java.time.Instant
 /** M5 contract: research signals only, never executable trade instructions. */
 enum class SignalDirection { UP, DOWN, NO_TRADE }
 
+/** Lifecycle is evaluated at the requested observation time, never persisted as mutable state. */
+enum class SignalLifecycle { NOT_YET_AVAILABLE, ACTIVE, EXPIRED }
+
 data class DirectionalSignal(
     val symbol: String,
     val horizonHours: Int,
@@ -18,6 +21,12 @@ data class DirectionalSignal(
     val direction: SignalDirection,
     val rationale: String
 ) {
+    fun lifecycleAt(asOfMs: Long): SignalLifecycle = when {
+        asOfMs < generatedAtMs || asOfMs < featureAvailableAtMs -> SignalLifecycle.NOT_YET_AVAILABLE
+        asOfMs >= expiresAtMs -> SignalLifecycle.EXPIRED
+        else -> SignalLifecycle.ACTIVE
+    }
+
     init {
         require(symbol in setOf("BTCUSDT", "ETHUSDT"))
         require(horizonHours == 4)

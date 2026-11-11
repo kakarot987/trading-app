@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "scope": "M1-M8 consolidated review on milestone/M9-acceptance-reliability",
+  "reviewedAtUtc": "2026-11-11",
+  "notes": [
+    "Implementation PR references and file existence are not equivalent to completed milestone acceptance.",
+    "Evidence requirements are a review checklist; this manifest cannot confirm their completion.",
+    "Any operational or deployment decision requires separately reviewed evidence and appropriate authorization."
+  ],
+  "phases": [
+    {
+      "id": "M1",
+      "title": "Resource baseline and stability",
+      "prs": [
+        24
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M1-BASELINE-RESULTS.md",
+        "docs/milestone-results/M1-M2-FINAL-ACCEPTANCE.md",
+        "scripts/measure-m1-m2-readonly.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m1-equivalent-load",
+          "category": "operational",
+          "requiredEvidence": "Controlled repeatable equivalent-input-rate before/after resource and latency benchmark including Docker Desktop/WSL overhead"
+        },
+        {
+          "id": "m1-coordinator",
+          "category": "operational",
+          "requiredEvidence": "Kafka group-coordinator incident root cause, bounded recovery behavior and sustained consumer lag measurements"
+        },
+        {
+          "id": "m1-key",
+          "category": "security",
+          "requiredEvidence": "Confirmed provider key revocation/rotation and exposure review"
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "Ingestion correctness and recovery",
+      "prs": [
+        5,
+        16,
+        17,
+        24
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M2-INGESTION-DESIGN.md",
+        "docs/milestone-results/M1-M2-FINAL-ACCEPTANCE.md",
+        "scripts/verify-m2.ps1",
+        "scripts/accept-m2-kafka-outage.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m2-faults",
+          "category": "operational",
+          "requiredEvidence": "Approved isolated broker/PostgreSQL/process failure injection with offset, outbox and replay evidence"
+        },
+        {
+          "id": "m2-poison",
+          "category": "operational",
+          "requiredEvidence": "Malformed and poison-record durable quarantine with retry exhaustion and operator alerting"
+        },
+        {
+          "id": "m2-load",
+          "category": "operational",
+          "requiredEvidence": "Sustained declared input rate, bounded lag and measured outbox drainage"
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "title": "Four-hour features and provenance",
+      "prs": [
+        7,
+        18
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M3-ASOF-ACCEPTANCE.md",
+        "scripts/accept-m3.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m3-real-alignment",
+          "category": "data",
+          "requiredEvidence": "Representative live BTC/ETH exchange timestamp, candle boundary, late arrival and backfill alignment"
+        },
+        {
+          "id": "m3-vintages",
+          "category": "data",
+          "requiredEvidence": "Immutable observation revisions or explicitly limited historical backtest claims"
+        }
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "News provenance and sentiment quality",
+      "prs": [
+        8,
+        19
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M4-QUALITY-ACCEPTANCE.md",
+        "scripts/accept-m4-offline.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m4-permission",
+          "category": "external",
+          "requiredEvidence": "Provider authorization, licensing, quotas, attribution and permitted metadata storage/use"
+        },
+        {
+          "id": "m4-evaluation",
+          "category": "data",
+          "requiredEvidence": "Representative licensed independently labeled BTC/ETH dataset with macro-F1, per-class error and relevance/abstention results"
+        }
+      ]
+    },
+    {
+      "id": "M5",
+      "title": "Versioned research signals and calibration",
+      "prs": [
+        9,
+        20
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M5-SIGNAL-ACCEPTANCE.md",
+        "scripts/accept-m5-offline.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m5-untouched-holdout",
+          "category": "data",
+          "requiredEvidence": "Real timestamp-verified untouched holdout with dataset hash, sample counts, baselines and calibration quality"
+        },
+        {
+          "id": "m5-operational",
+          "category": "operational",
+          "requiredEvidence": "Recorded real-source version traceability, expiry/research-only safeguards and abstention behavior"
+        }
+      ]
+    },
+    {
+      "id": "M6",
+      "title": "Spot-only paper execution and ledger",
+      "prs": [
+        10,
+        21
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M6-PAPER-EXECUTION-ACCEPTANCE.md",
+        "scripts/audit-m6-paper-ledger.ps1",
+        "scripts/verify-m6-schema.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m6-recovery",
+          "category": "operational",
+          "requiredEvidence": "Controlled isolated service/database restart with persisted fill and ledger reconciliation"
+        },
+        {
+          "id": "m6-funding",
+          "category": "data",
+          "requiredEvidence": "Immutable synthetic funding history and quote/base balance conservation evidence"
+        },
+        {
+          "id": "m6-tick",
+          "category": "data",
+          "requiredEvidence": "Forward tick provenance, ordering and realistic spread/slippage/cost validation"
+        }
+      ]
+    },
+    {
+      "id": "M7",
+      "title": "Persisted paper evaluation",
+      "prs": [
+        11,
+        22
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M7-PERSISTED-EVALUATION-ACCEPTANCE.md",
+        "historical-service/src/main/kotlin/com/trading/historical_service/evaluation/PersistedPaperInventoryRepository.kt"
+      ],
+      "openGates": [
+        {
+          "id": "m7-marks",
+          "category": "data",
+          "requiredEvidence": "Complete contemporaneously observed BTC/ETH equity-mark series and defensible P&L/exposure/risk calculations"
+        },
+        {
+          "id": "m7-benchmarks",
+          "category": "data",
+          "requiredEvidence": "Matching-window benchmark with explicit costs and prospective forward-paper versus backtest evidence"
+        }
+      ]
+    },
+    {
+      "id": "M8",
+      "title": "Private-demo hardening and release security",
+      "prs": [
+        12,
+        23
+      ],
+      "evidencePaths": [
+        "docs/milestone-results/M8-PHASE-SECURITY-ACCEPTANCE.md",
+        "docs/milestone-results/M8-RELEASE-READINESS.md",
+        "scripts/verify-m8-phase-security.ps1",
+        "scripts/accept-m8-secure-paper.ps1",
+        "scripts/audit-runtime-ports.ps1"
+      ],
+      "openGates": [
+        {
+          "id": "m8-owner",
+          "category": "security",
+          "requiredEvidence": "Authenticated per-wallet ownership/authorization across reads and mutations; shared bearer token is insufficient"
+        },
+        {
+          "id": "m8-runtime",
+          "category": "operational",
+          "requiredEvidence": "Recreated live container port binding, browser/mobile tests, restart/load and incident monitoring"
+        },
+        {
+          "id": "m8-legal",
+          "category": "external",
+          "requiredEvidence": "Provider terms, key rotation, privacy/security review, runbooks and reviewed release assets"
+        }
+      ]
+    }
+  ]
+}

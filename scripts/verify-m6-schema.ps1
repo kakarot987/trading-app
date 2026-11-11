@@ -8,7 +8,10 @@ SELECT
  ) AND EXISTS (
    SELECT 1 FROM flyway_schema_history
    WHERE version='10' AND success
- ) THEN 'PASS' ELSE 'FAIL' END || '|Flyway V9 and V10';
+ ) AND EXISTS (
+   SELECT 1 FROM flyway_schema_history
+   WHERE version='11' AND success
+ ) THEN 'PASS' ELSE 'FAIL' END || '|Flyway V9-V11';
 SELECT CASE WHEN to_regclass('public.paper_wallets') IS NOT NULL
  AND to_regclass('public.paper_orders') IS NOT NULL
  AND to_regclass('public.paper_balances') IS NOT NULL

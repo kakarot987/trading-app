@@ -7,6 +7,14 @@ spring:
     url: r2dbc:postgresql://postgres:5432/trades
     username: trader
     password: ${SPRING_R2DBC_PASSWORD:}
+    # Check a pooled connection before handing it to an API request.
+    # Old sockets can survive a PostgreSQL container replacement.
+    pool:
+      enabled: true
+      validation-query: SELECT 1
+      max-idle-time: 30s
+      max-life-time: 10m
+      max-acquire-time: 10s
 
   # Flyway using JDBC (explicit so Flyway runs)
   flyway:
@@ -31,7 +39,7 @@ server:
 logging:
   level:
     root: INFO
-    com.trading.historical_service: DEBUG
+    com.trading.historical_service: INFO
 
 # Management endpoints
 management:

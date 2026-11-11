@@ -19,11 +19,13 @@ if ($missing.Count -gt 0) { throw "Required project files missing: $($missing -j
 Write-Host '[PASS] Expected milestone acceptance scripts and paper evaluation UI/API exist'
 
 $branch = (& git branch --show-current).Trim()
-if ($LASTEXITCODE -ne 0) { throw 'Git is unavailable' }
-if ($branch -ne 'milestone/M8-portfolio-release') {
-    throw "Expected M8 worktree; current branch: $branch"
-}
-Write-Host '[PASS] Running in M8 branch'
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($branch)) { throw 'An active Git branch is required' }
+Write-Host "[PASS] Release preflight executing on branch $branch"
+
+# This is a static safeguard, not a production approval. The script rejects
+# unsafe Compose defaults and tracked environment files before any runtime work.
+& (Join-Path $root 'scripts/verify-m8-phase-security.ps1')
+if ($LASTEXITCODE -ne 0 -or -not $?) { throw 'M8 static security gate failed' }
 
 $compose = Get-Content (Join-Path $root 'docker-compose.yml') -Raw
 if ($compose -match '(?m)^\s*-\s*["'']?0\.0\.0\.0:') {
@@ -32,7 +34,7 @@ if ($compose -match '(?m)^\s*-\s*["'']?0\.0\.0\.0:') {
 if ($compose -match '(?m)^\s*-\s*["'']?[0-9]{2,5}:[0-9]{2,5}') {
     Write-Warning 'Compose has ports without loopback host binding. Docker may expose these to the network.'
 }
-Write-Host '[REVIEW] Port exposure is NOT automatically approved'
+Write-Host '[REVIEW] Configured loopback ports do not prove the bindings of running containers'
 
 Write-Host '[REVIEW] Verify provider licensing, secrets/history, authentication, privacy and API rate limits'
 Write-Host '[REVIEW] Verify backend/frontend CI and reproducible smoke tests'

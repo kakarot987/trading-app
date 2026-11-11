@@ -32,6 +32,17 @@ class PaperFillEngineTest {
         assertNull(PaperFillEngine.fillAtFirstFutureTick(buy, 3000L, listOf(tick)))
     }
 
+    @Test fun `ambiguous prices at the earliest future timestamp fail closed`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            PaperFillEngine.fillAtFirstFutureTick(buy, 2000L, listOf(
+                tick, tick.copy(midPrice = BigDecimal("101.00000000"))
+            ))
+        }
+        val identical = PaperFillEngine.fillAtFirstFutureTick(buy, 2000L, listOf(tick, tick))
+        assertEquals(2001L, identical?.filledAtMs)
+        assertEquals(PaperDecimal.exact("100.04000000"), identical?.price)
+    }
+
     @Test fun `earliest strictly future tick wins even on unsorted input`() {
         val result = PaperFillEngine.fillAtFirstFutureTick(buy, 2000L,
             listOf(tick.copy(timestampMs = 3000L), tick,

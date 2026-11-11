@@ -43,6 +43,35 @@ class FeatureSnapshotTest {
     }
 
     @Test
+    fun `historical as-of snapshot ignores a future gap and future outlier`() {
+        val historical = bars(40)
+        val cutoff = 40 * interval
+        val asOf = FeatureSnapshots.latest("BTCUSDT", historical, cutoff)
+        assertNotNull(asOf)
+
+        val future = CandleSeries.Bar(
+            45 * interval, 46 * interval,
+            999999.0, 999999.0, 999999.0, 999999.0, 999.0, 1
+        )
+        val withFuture = FeatureSnapshots.latest(
+            "BTCUSDT", historical + future, cutoff
+        )
+        assertEquals(asOf, withFuture, "Future bars must not affect an as-of snapshot")
+    }
+
+    @Test
+    fun `historical as-of snapshot rejects an earlier gap even when later bars exist`() {
+        val historyWithGap = bars(40).filterIndexed { i, _ -> i != 25 }
+        val future = CandleSeries.Bar(
+            42 * interval, 43 * interval,
+            100.0, 100.0, 100.0, 100.0, 10.0, 1
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            FeatureSnapshots.latest("ETHUSDT", historyWithGap + future, 40 * interval)
+        }
+    }
+
+    @Test
     fun `insufficient history cannot fabricate indicators`() {
         assertNull(FeatureSnapshots.latest("BTCUSDT", bars(20), 20 * interval))
     }

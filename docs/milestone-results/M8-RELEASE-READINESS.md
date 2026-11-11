@@ -34,3 +34,26 @@ Private, simulated-paper-trading development demo only. No exchange execution. A
 Do not create a production/release tag until open blockers are resolved or explicitly and appropriately scoped out of a non-public preview release, with verifiable evidence and approval.
 
 This file intentionally does not modify `docs/MILESTONES.md`.
+
+## November 11, 2026 M8 hardening update (phase PR, NOT YET ACCEPTED)
+
+The new M8 phase PR changes the **checked-in** normal Compose default to
+`M8_PAPER_LOCAL_INSECURE_ENABLED=false` and explicitly forces
+`M6_PAPER_COMMANDS_ENABLED=false` for the normal historical-data-service.
+A shared paper bearer token may be supplied at runtime; this is still
+**not per-wallet authorization**. The checked-in defaults and running
+containers must not be confused: a container created with earlier demo
+settings will retain them until explicitly recreated.
+
+The M8 phase bundle also includes duplicate bearer-header rejection,
+paper-response `Cache-Control: no-store`, private security CI/preflight,
+read-only 401/header checks and display of M7 realized paper inventory
+without implying unmarked equity returns.
+
+Earlier entries in this document describe historical tests and behavior,
+not newly rerun M8 checks. Confirm new CI, real local secure-mode API,
+actual port bindings, browser QA, provider/legal approval, key rotation,
+incident response, performance benchmarking and wallet ownership before
+changing any acceptance or public-release status.
+
+**No production/public release tag is authorized by this code bundle.**

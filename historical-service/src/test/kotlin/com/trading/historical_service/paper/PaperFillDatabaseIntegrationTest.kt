@@ -33,7 +33,8 @@ class PaperFillDatabaseIntegrationTest {
         conn.sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
         for (migration in listOf(
             "V9__create_paper_trading_ledger.sql",
-            "V10__atomic_paper_fill_posting.sql"
+            "V10__atomic_paper_fill_posting.sql",
+            "V11__reject_conflicting_paper_fill_replay.sql"
         )) {
             val ddl = javaClass.getResourceAsStream("/db/migration/$migration")!!
                 .bufferedReader().readText()
@@ -88,6 +89,14 @@ class PaperFillDatabaseIntegrationTest {
             val orderId = conn.order(wallet, "once")
             assertTrue(conn.fill(orderId))
             assertFalse(conn.fill(orderId))
+            assertThrows(java.sql.SQLException::class.java) {
+                conn.prepareStatement(
+                    "SELECT paper_post_fill(?,2001,100.04000000,10.00400000,0.01000400)"
+                ).use { ps ->
+                    ps.setObject(1, orderId)
+                    ps.executeQuery().use { it.next() }
+                }
+            }
             assertEquals(1L, conn.number("SELECT count(*) FROM paper_fills"))
             assertEquals(2L, conn.number("SELECT count(*) FROM paper_ledger_entries"))
             assertEquals(1L, conn.number("SELECT count(*) FROM paper_orders WHERE status='FILLED'"))

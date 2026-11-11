@@ -22,9 +22,17 @@ object WalkForwardDataset {
 
     fun build(
         snapshots: List<FeatureSnapshot>,
-        candles: List<CandleSeries.Bar>
+        candles: List<CandleSeries.Bar>,
+        // Optional observed-time map for production data. Empty is permitted only
+        // for existing in-memory fixtures; database callers must supply provenance.
+        candleObservedAtMs: Map<Long, Long> = emptyMap()
     ): List<EvaluationExample> {
         val closeByTime = candles.associateBy { it.closeTimeMs }
+        if (candleObservedAtMs.isNotEmpty()) {
+            require(candles.all { candleObservedAtMs.containsKey(it.closeTimeMs) }) {
+                "Every market candle needs known observation provenance"
+            }
+        }
         require(closeByTime.size == candles.size) { "Duplicate candle close times" }
         return snapshots.mapNotNull { feature ->
             require(feature.interval == "4h" && feature.horizonHours == 4)
@@ -34,7 +42,19 @@ object WalkForwardDataset {
             if (feature.availableAtMs >= feature.candleCloseTimeMs + FOUR_HOURS) return@mapNotNull null
             val previous = closeByTime[feature.candleCloseTimeMs] ?: return@mapNotNull null
             val next = closeByTime[feature.candleCloseTimeMs + FOUR_HOURS] ?: return@mapNotNull null
+            require(feature.symbol in CandleSeries.spotSymbols)
+            // A revised current candle seen only after feature availability cannot
+            // recreate the price the model saw. A late next candle likewise cannot
+            // be used as a label at its original close; exclude rather than backdate.
+            if (candleObservedAtMs.isNotEmpty()) {
+                if (requireNotNull(candleObservedAtMs[previous.closeTimeMs]) > feature.availableAtMs)
+                    return@mapNotNull null
+                if (requireNotNull(candleObservedAtMs[next.closeTimeMs]) > next.closeTimeMs)
+                    return@mapNotNull null
+            }
             require(previous.close.isFinite() && previous.close > 0.0)
+            require(previous.closeTimeMs + FOUR_HOURS == next.closeTimeMs)
+            require(feature.availableAtMs < next.closeTimeMs)
             require(next.close.isFinite() && next.close > 0.0)
             val ret = next.close / previous.close - 1.0
             EvaluationExample(

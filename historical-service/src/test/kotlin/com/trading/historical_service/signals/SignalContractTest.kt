@@ -17,6 +17,16 @@ class SignalContractTest {
     }
 
     @Test
+    fun `signal lifecycle has inclusive start and exclusive expiry`() {
+        val signal = AbstentionBaseline.predict("BTCUSDT", "technical-4h-v1",
+            close, close, close + 1_000)
+        assertEquals(SignalLifecycle.NOT_YET_AVAILABLE, signal.lifecycleAt(close + 999))
+        assertEquals(SignalLifecycle.ACTIVE, signal.lifecycleAt(close + 1_000))
+        assertEquals(SignalLifecycle.ACTIVE, signal.lifecycleAt(signal.expiresAtMs - 1))
+        assertEquals(SignalLifecycle.EXPIRED, signal.lifecycleAt(signal.expiresAtMs))
+    }
+
+    @Test
     fun `signals reject future information, invalid probability and unsupported symbols`() {
         assertThrows(IllegalArgumentException::class.java) {
             AbstentionBaseline.predict("BTCUSDT", "technical-4h-v1",
