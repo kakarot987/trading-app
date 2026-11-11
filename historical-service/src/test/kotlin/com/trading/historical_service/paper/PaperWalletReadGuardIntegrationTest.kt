@@ -55,7 +55,7 @@ class PaperWalletReadGuardIntegrationTest {
         )
         val db = DatabaseClient.create(factory)
         val guard = PaperWalletReadGuard(db, R2dbcTransactionManager(factory), false)
-        val portfolio = PaperPortfolioController(db, guard)
+        val portfolio = PaperPortfolioController(db, guard, PaperFundingRepository(db))
         val evaluationController = PaperEvaluationController(
             PersistedPaperActivityRepository(db),
             PersistedPaperInventoryRepository(db), guard
