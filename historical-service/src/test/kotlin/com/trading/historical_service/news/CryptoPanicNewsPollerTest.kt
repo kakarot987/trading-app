@@ -62,6 +62,8 @@ class CryptoPanicNewsPollerTest {
         assertNull(parse("2026-10-30T09:00:00Z", "https://example.org/item", "DOGE"))
         assertNull(parse("2026-10-30T09:00:00Z", "http://example.org/item", "BTC"))
         assertNull(parse("invalid timestamp", "https://example.org/item", "BTC"))
+        assertNull(parse("2026-10-30T09:00:00Z", "https://example.org/item?auth_token=secret", "BTC"))
+        assertNull(parse("2026-10-30T09:00:00Z", "https://user:secret@example.org/item", "BTC"))
     }
 
     @Test

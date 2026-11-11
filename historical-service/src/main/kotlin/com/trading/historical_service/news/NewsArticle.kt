@@ -26,7 +26,16 @@ data class NewsArticle(
         require(symbols.all { it in setOf("BTCUSDT", "ETHUSDT") })
         val uri = URI(canonicalUrl)
         require(uri.scheme.equals("https", ignoreCase = true) &&
-            !uri.host.isNullOrBlank()) { "Canonical URL must be HTTPS" }
+            !uri.host.isNullOrBlank() && uri.rawUserInfo == null) {
+            "Canonical URL must be HTTPS without embedded credentials"
+        }
+        // A provider's authenticated API URL must never be persisted as an
+        // article link or returned to clients. Restrict only credential query
+        // parameters; ordinary publisher tracking links may be retained.
+        val keys = uri.rawQuery.orEmpty().split('&').map { it.substringBefore('=').lowercase() }
+        require(keys.none { it in setOf("auth_token", "api_key", "apikey", "access_token", "token") }) {
+            "Canonical article URL must not contain credential parameters"
+        }
     }
 
     /** Same canonical article is deduplicated across polling replays. */

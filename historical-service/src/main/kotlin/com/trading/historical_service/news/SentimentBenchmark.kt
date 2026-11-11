@@ -39,10 +39,16 @@ object SentimentBenchmark {
         classifier: (String) -> HeadlineSentiment = KeywordSentimentBaseline::predict
     ): BenchmarkResult {
         require(examples.isNotEmpty()) { "A nonempty labeled benchmark is required" }
+        // Predict exactly once per input. Re-evaluating a mutable or remote
+        // classifier per confusion-matrix cell can inflate request counts and
+        // make the metrics internally inconsistent.
+        val predictions = examples.map { it.expected to classifier(it.headline) }
         val labels = HeadlineSentiment.entries
         val counts = labels.associateWith { actual ->
             labels.associateWith { predicted ->
-                examples.count { it.expected == actual && classifier(it.headline) == predicted }
+                predictions.count { (expected, observed) ->
+                    expected == actual && observed == predicted
+                }
             }
         }
         val correct = labels.sumOf { counts.getValue(it).getValue(it) }

@@ -33,6 +33,20 @@ class SentimentBenchmarkTest {
     }
 
     @Test
+    fun `classifier runs once per example and confusion matrix stays coherent`() {
+        var calls = 0
+        val result = SentimentBenchmark.evaluate(examples) { headline ->
+            calls++
+            KeywordSentimentBaseline.predict(headline)
+        }
+        assertEquals(examples.size, calls, "One inference per headline avoids inconsistent metrics")
+        assertEquals(result.total, result.confusion.values.sumOf { row -> row.values.sum() })
+        assertEquals(result.correct, HeadlineSentiment.entries.sumOf { label ->
+            result.confusion.getValue(label).getValue(label)
+        })
+    }
+
+    @Test
     fun `empty benchmark is rejected`() {
         assertThrows(IllegalArgumentException::class.java) {
             SentimentBenchmark.evaluate(emptyList())
