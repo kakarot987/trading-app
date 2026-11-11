@@ -7,6 +7,13 @@ spring:
     url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/trades}
     username: ${SPRING_R2DBC_USERNAME:trader}
     password: ${SPRING_R2DBC_PASSWORD}
+    # Revalidate idle connections after PostgreSQL container replacement.
+    pool:
+      enabled: true
+      validation-query: SELECT 1
+      max-idle-time: 30s
+      max-life-time: 10m
+      max-acquire-time: 10s
 
   flyway:
     enabled: true
