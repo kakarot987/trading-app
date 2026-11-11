@@ -60,8 +60,10 @@ class CryptoPanicNewsPoller(
             log.info("M4 news poll: received={}, inserted={}", items.size(), inserted)
         } catch (e: Exception) {
             // Do not expose request URI: it includes the API token.
-            log.warn("M4 news poll failed (status/type={}): {}",
-                e.javaClass.simpleName, e.message?.replace(token, "[REDACTED]"))
+            // WebClient exceptions may embed the full request URI, including
+            // an encoded auth_token. Never render exception messages or the
+            // request URI in logs, even if literal token replacement seems safe.
+            log.warn("M4 news poll failed; exceptionType={}", e.javaClass.simpleName)
         }
     }
 
