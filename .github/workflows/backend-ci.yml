@@ -17,5 +17,12 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Check Docker daemon and configure Testcontainers API compatibility
+        run: |
+          docker version
+          docker info --format 'Server version: {{.ServerVersion}}'
+          # Older docker-java clients can request API 1.32, rejected by Docker 29.
+          # Scope this compatibility override to the disposable CI runner only.
+          printf 'api.version=1.44\n' > "$HOME/.docker-java.properties"
       - name: Compile and test all backend modules
         run: bash ./gradlew test --no-daemon --console=plain
