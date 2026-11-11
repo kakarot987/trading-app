@@ -40,11 +40,14 @@ class OutboxPublisher(
                 require(event.tradeId == tradeId) { "Outbox trade ID mismatch" }
                 tradePublisher.publishProcessedTrade(event)
 
-                databaseClient.sql(
+                val updated = databaseClient.sql(
                     "UPDATE trade_outbox SET published_at = now() WHERE trade_id = :tradeId AND published_at IS NULL"
                 ).bind("tradeId", tradeId)
                     .fetch().rowsUpdated().block(Duration.ofSeconds(10))
                     ?: error("Outbox update returned no result")
+                check(updated == 1L) {
+                    "Expected one pending outbox row when marking published for tradeId=$tradeId, updated=$updated"
+                }
             } catch (exception: Exception) {
                 logger.error("Outbox publication failed for tradeId={}; will retry", tradeId, exception)
                 break // Keep publication order; retry at the next scheduled tick.
