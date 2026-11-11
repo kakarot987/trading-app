@@ -38,7 +38,8 @@ class PaperWalletReadGuardIntegrationTest {
                 for (migration in listOf(
                     "V9__create_paper_trading_ledger.sql",
                     "V12__paper_wallet_scoped_credentials.sql",
-                    "V13__paper_wallet_credential_audit.sql"
+                    "V13__paper_wallet_credential_audit.sql",
+                    "V14__immutable_paper_wallet_initial_funding.sql"
                 )) {
                     stmt.execute(requireNotNull(javaClass.getResourceAsStream(
                         "/db/migration/$migration"
@@ -54,7 +55,7 @@ class PaperWalletReadGuardIntegrationTest {
         )
         val db = DatabaseClient.create(factory)
         val guard = PaperWalletReadGuard(db, R2dbcTransactionManager(factory), false)
-        val portfolio = PaperPortfolioController(db, guard)
+        val portfolio = PaperPortfolioController(db, guard, PaperFundingRepository(db))
         val evaluationController = PaperEvaluationController(
             PersistedPaperActivityRepository(db),
             PersistedPaperInventoryRepository(db), guard

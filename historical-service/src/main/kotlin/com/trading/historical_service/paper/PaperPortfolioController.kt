@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.RequestHeader
+import reactor.core.publisher.Mono
 import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Flux
 import java.math.BigDecimal
@@ -29,8 +31,21 @@ data class PaperOrderView(
 @RequestMapping("/api/v1/paper/wallets")
 class PaperPortfolioController(
     private val db: DatabaseClient,
-    private val readGuard: PaperWalletReadGuard
+    private val readGuard: PaperWalletReadGuard,
+    private val fundingRepository: PaperFundingRepository
 ) {
+    /**
+     * Read-only accounting evidence. A legacy wallet is reported as
+     * LEGACY_UNVERIFIED rather than inventing its initial funding.
+     */
+    @GetMapping("/{walletId}/funding-audit")
+    fun fundingAudit(
+        @PathVariable walletId: UUID,
+        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false)
+        authorization: String = ""
+    ): Mono<PaperFundingAudit> =
+        readGuard.mono(walletId, authorization, fundingRepository.audit(walletId))
+
     @GetMapping("/{walletId}/balances")
     fun balances(
         @PathVariable walletId: UUID,

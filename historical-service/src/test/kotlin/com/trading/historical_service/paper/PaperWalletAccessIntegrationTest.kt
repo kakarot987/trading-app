@@ -29,7 +29,8 @@ class PaperWalletAccessIntegrationTest {
             conn.createStatement().use { statement ->
                 for (path in listOf(
                     "/db/migration/V9__create_paper_trading_ledger.sql",
-                    "/db/migration/V12__paper_wallet_scoped_credentials.sql"
+                    "/db/migration/V12__paper_wallet_scoped_credentials.sql",
+                    "/db/migration/V14__immutable_paper_wallet_initial_funding.sql"
                 )) {
                     statement.execute(requireNotNull(javaClass.getResourceAsStream(path))
                         .bufferedReader().use { it.readText() })
