@@ -23,6 +23,30 @@ class CalibratedWalkForwardTest {
         assertEquals(26, report.calibrated.count)
         assertTrue(report.raw.brier.isFinite())
         assertTrue(report.calibrated.logLoss.isFinite())
+        assertEquals(41, report.preCalibrationTrainSize)
+        assertEquals(110 * h, report.holdoutEndMs)
+        assertEquals(64, report.datasetSha256.length)
+        assertEquals(26, report.coinFlip.count)
+        assertEquals(26, report.trainingPrevalence.count)
+        assertEquals(0.25, report.coinFlip.brier, 1e-10)
+        assertEquals(report.datasetSha256,
+            CalibratedWalkForward.evaluate(examples, 42 * h, 85 * h).datasetSha256)
+    }
+
+    @Test fun `changed observed feature yields distinct dataset fingerprint`() {
+        val rows = (0..109).map(::sample)
+        val changed = rows.toMutableList()
+        val row = changed[4]
+        changed[4] = row.copy(features = row.features.copy(ema12 = row.features.ema12 + 0.1))
+        assertNotEquals(EvaluationProvenance.sha256(rows), EvaluationProvenance.sha256(changed))
+    }
+
+    @Test fun `invalid feature provenance fails closed`() {
+        val rows = (0..109).map(::sample).toMutableList()
+        rows[5] = rows[5].copy(featureVersion = "misrepresented-version")
+        assertThrows(IllegalArgumentException::class.java) {
+            CalibratedWalkForward.evaluate(rows, 42 * h, 85 * h)
+        }
     }
 
     @Test fun `sparse observations refuse calibrated evaluation`() {

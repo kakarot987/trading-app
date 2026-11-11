@@ -46,16 +46,19 @@ class HistoricalEvaluationRepository(private val db: DatabaseClient) {
             }.all().collectList()
         val candles = db.sql(
             """
-            SELECT open_time, close_time, open, high, low, close, volume, trades
+            SELECT open_time, close_time, open, high, low, close, volume, trades, source_observed_at_ms
             FROM candles
             WHERE symbol = :symbol AND interval_trade = '240m'
               AND close_time <= :asOf
+              AND data_source = 'local_trades'
+              AND source_observed_at_ms IS NOT NULL
+              AND source_observed_at_ms <= :asOf
             ORDER BY close_time
             """.trimIndent()
         ).bind("symbol", symbol).bind("asOf", asOfMs)
             .map { row, _ ->
                 fun number(name: String) = (requireNotNull(row.get(name)) as Number)
-                CandleSeries.Bar(
+                val bar = CandleSeries.Bar(
                     openTimeMs = number("open_time").toLong(),
                     closeTimeMs = number("close_time").toLong(),
                     open = number("open").toDouble(),
@@ -65,9 +68,15 @@ class HistoricalEvaluationRepository(private val db: DatabaseClient) {
                     volume = number("volume").toDouble(),
                     tradeCount = number("trades").toInt()
                 )
+                bar to number("source_observed_at_ms").toLong()
             }.all().collectList()
         return Mono.zip(snapshots, candles)
-            .map { pair -> WalkForwardDataset.build(pair.t1, pair.t2) }
+            .map { pair ->
+                WalkForwardDataset.build(
+                    pair.t1, pair.t2.map { it.first },
+                    pair.t2.associate { it.first.closeTimeMs to it.second }
+                )
+            }
     }
 
     fun loadBlocking(symbol: String, asOfMs: Long): List<EvaluationExample> =
