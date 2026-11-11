@@ -1,0 +1,22 @@
+name: M8 private release security gate
+
+on:
+  push:
+    branches: [main, 'milestone/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-demo-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify paper API and Compose fail-closed defaults
+        shell: pwsh
+        run: ./scripts/verify-m8-phase-security.ps1
+      - name: Verify Docker Compose configuration parses without resolving secrets
+        run: docker compose -f docker-compose.yml config --no-interpolate --quiet

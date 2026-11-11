@@ -26,3 +26,21 @@ Status: **NOT YET EXECUTED**. Record actual browser results before marking passe
 The local demo bypass is not multi-user authentication. Do not publish the unauthenticated wallet API or claim production readiness. Browser smoke is not automated E2E testing. Mobile smoke, recoverability, resource benchmarks and independent performance evidence remain outstanding.
 
 Record results in the M8 PR; keep `docs/MILESTONES.md` unchanged.
+
+## M8 phase extension — realized fill display
+
+- [ ] With a test wallet containing committed synthetic fills, verify that
+  the read-only UI displays **Realized paper inventory (USDT)** and the
+  exact reconciled realized P&L from the API.
+- [ ] Verify that it still does **not** display invented portfolio equity,
+  benchmark excess returns or unrealized P&L when trustworthy market marks
+  are missing.
+- [ ] In secure mode, verify anonymous requests get HTTP 401 and the browser
+  clears stale balances, orders and evaluation.
+- [ ] Record actual current-container port bindings, request methods and
+  the opt-in authentication mode used. Mocked Playwright tests alone are
+  not proof of backend authentication or complete browser acceptance.
+
+**Default mode changed:** normal Compose now disables the insecure paper API
+bypass. Use the separate M8 secure acceptance script for default-deny
+verification; opt into the insecure local-only demo explicitly if needed.

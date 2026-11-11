@@ -6,6 +6,15 @@ type Order = {
   quantity: string; submittedAtMs: number; status: string; rejectionReason: string | null;
 };
 
+type RealizedInventory = {
+  asset: string;
+  fillCount: number;
+  remainingQuantity: string;
+  remainingCostBasisUsdt: string;
+  realizedPnlUsdt: string;
+  netQuoteMovementUsdt: string;
+};
+
 type Evaluation = {
   activity: {
     fillCount: number;
@@ -14,6 +23,7 @@ type Evaluation = {
     quoteLedgerNetUsdt: string;
   };
   evidence: string[];
+  realizedInventory?: RealizedInventory[] | null;
   limitations: string[];
   inventory: unknown[] | null;
   equity: unknown | null;
@@ -116,6 +126,35 @@ export function PaperPortfolioView() {
               <div className="rounded bg-slate-800 p-3"><p className="text-xs text-slate-400">Trade turnover (USDT)</p><p className="font-mono">{evaluation.activity.tradedNotionalUsdt}</p></div>
               <div className="rounded bg-slate-800 p-3"><p className="text-xs text-slate-400">Fees paid (USDT)</p><p className="font-mono">{evaluation.activity.paidFeesUsdt}</p></div>
             </div>
+
+            {evaluation.realizedInventory && evaluation.realizedInventory.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Realized paper inventory (USDT)</h3>
+                <p className="text-xs text-slate-400">
+                  From recorded paper fills only. Realized P&amp;L is not total portfolio
+                  return; unmarked holdings have no unrealized P&amp;L estimate.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead><tr className="border-b border-slate-700">
+                      <th className="p-2">Asset</th><th className="p-2">Fills</th>
+                      <th className="p-2">Remaining quantity</th>
+                      <th className="p-2">Remaining cost basis</th>
+                      <th className="p-2">Realized P&amp;L</th>
+                    </tr></thead>
+                    <tbody>{evaluation.realizedInventory.map((position) =>
+                      <tr key={position.asset} className="border-b border-slate-800">
+                        <td className="p-2">{position.asset}</td>
+                        <td className="p-2">{position.fillCount}</td>
+                        <td className="p-2 font-mono">{position.remainingQuantity}</td>
+                        <td className="p-2 font-mono">{position.remainingCostBasisUsdt}</td>
+                        <td className="p-2 font-mono">{position.realizedPnlUsdt}</td>
+                      </tr>
+                    )}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
             <h3 className="text-sm font-medium">Unavailable evaluations and limitations</h3>
             <ul className="list-disc space-y-1 pl-5 text-xs text-slate-400">
               {evaluation.limitations.map((item) => <li key={item}>{item}</li>)}
