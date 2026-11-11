@@ -4,6 +4,7 @@ import com.trading.common.model.TradeEvent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.mockito.stubbing.Answer
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 
 /** Input errors and duplicate/retry boundaries must not quietly skip trades. */
@@ -30,21 +31,33 @@ class TradeConsumerBoundaryTest {
     }
 
     @Test fun `duplicate input does not touch best effort cache`() {
-        Mockito.`when`(persistence.persistWithOutbox(
-            Mockito.any(), Mockito.any()
-        )).thenReturn(0)
+        // Mockito's unstubbed Int result is zero: an already-seen trade.
+        // Avoid Mockito.any() here: it passes null to Kotlin non-null parameters.
         consumer.consume(event())
-        Mockito.verify(persistence).persistWithOutbox(Mockito.any(), Mockito.any())
+        assertEquals(1, Mockito.mockingDetails(persistence).invocations.count {
+            it.method.name == "persistWithOutbox"
+        })
         Mockito.verifyNoInteractions(redis)
     }
 
     @Test fun `failed durable persistence propagates so Kafka cannot acknowledge`() {
-        Mockito.`when`(persistence.persistWithOutbox(
-            Mockito.any(), Mockito.any()
-        )).thenThrow(IllegalStateException("database unavailable"))
+        // Use a default answer rather than null-producing argument matchers.
+        // Any actual persistence invocation fails, regardless of generated timestamps.
+        val failingPersistence = Mockito.mock(
+            TradePersistenceService::class.java,
+            Answer<Any?> { invocation ->
+                if (invocation.method.name == "persistWithOutbox") {
+                    throw IllegalStateException("database unavailable")
+                }
+                Mockito.RETURNS_DEFAULTS.answer(invocation)
+            }
+        )
         assertThrows(IllegalStateException::class.java) {
-            consumer.consume(event())
+            TradeConsumer(failingPersistence, redis).consume(event())
         }
+        assertEquals(1, Mockito.mockingDetails(failingPersistence).invocations.count {
+            it.method.name == "persistWithOutbox"
+        })
         Mockito.verifyNoInteractions(redis)
     }
 }
