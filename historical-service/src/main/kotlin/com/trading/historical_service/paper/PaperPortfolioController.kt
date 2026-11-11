@@ -1,5 +1,6 @@
 package com.trading.historical_service.paper
 
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.web.bind.annotation.GetMapping
@@ -26,9 +27,16 @@ data class PaperOrderView(
  */
 @RestController
 @RequestMapping("/api/v1/paper/wallets")
-class PaperPortfolioController(private val db: DatabaseClient) {
+class PaperPortfolioController(
+    private val db: DatabaseClient,
+    private val readGuard: PaperWalletReadGuard
+) {
     @GetMapping("/{walletId}/balances")
-    fun balances(@PathVariable walletId: UUID): Flux<PaperBalanceView> =
+    fun balances(
+        @PathVariable walletId: UUID,
+        @org.springframework.web.bind.annotation.RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false)
+        authorization: String = ""
+    ): Flux<PaperBalanceView> = readGuard.flux(walletId, authorization,
         db.sql(
             """
             SELECT asset, available FROM paper_balances
@@ -41,16 +49,19 @@ class PaperPortfolioController(private val db: DatabaseClient) {
                     requireNotNull(row.get("available", BigDecimal::class.java))
                 )
             }.all()
+    )
 
     @GetMapping("/{walletId}/orders")
     fun orders(
         @PathVariable walletId: UUID,
-        @RequestParam(defaultValue = "20") limit: Int
+        @RequestParam(defaultValue = "20") limit: Int,
+        @org.springframework.web.bind.annotation.RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false)
+        authorization: String = ""
     ): Flux<PaperOrderView> {
         if (limit !in 1..100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Limit must be 1..100")
         }
-        return db.sql(
+        return readGuard.flux(walletId, authorization, db.sql(
             """
             SELECT order_id, client_order_id, symbol, side, quantity,
                    submitted_at_ms, status, rejection_reason
@@ -69,6 +80,6 @@ class PaperPortfolioController(private val db: DatabaseClient) {
                     status = requireNotNull(row.get("status", String::class.java)),
                     rejectionReason = row.get("rejection_reason", String::class.java)
                 )
-            }.all()
+            }.all())
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 class PaperPortfolioControllerTest {
-    private val controller = PaperPortfolioController(mock(DatabaseClient::class.java))
+    private val controller = PaperPortfolioController(mock(DatabaseClient::class.java), mock(PaperWalletReadGuard::class.java))
     private val wallet = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
     @Test fun `rejects invalid order page limits before database access`() {
