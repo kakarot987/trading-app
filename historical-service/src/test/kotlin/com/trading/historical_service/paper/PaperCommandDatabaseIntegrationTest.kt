@@ -36,6 +36,9 @@ class PaperCommandDatabaseIntegrationTest {
                     "/db/migration/V12__paper_wallet_scoped_credentials.sql"
                 )!!.bufferedReader().use { it.readText() }
                 statement.execute(scopedDdl)
+                statement.execute(requireNotNull(javaClass.getResourceAsStream(
+                    "/db/migration/V13__paper_wallet_credential_audit.sql"
+                )).bufferedReader().use { it.readText() })
             }
         }
         val factory = PostgresqlConnectionFactory(
@@ -69,8 +72,9 @@ class PaperCommandDatabaseIntegrationTest {
         val request = SubmitPaperOrderRequest(
             "test-key-1", "BTCUSDT", PaperOrderSide.BUY, "0.01000000", 1000L
         )
-        val first = commands.submit(wallet, request).await()
-        val replay = commands.submit(wallet, request).await()
+        val auth = "Bearer ${provisioned.walletToken}"
+        val first = commands.submit(wallet, request, auth).await()
+        val replay = commands.submit(wallet, request, auth).await()
         assertEquals(first.orderId, replay.orderId)
         assertEquals("NEW", replay.status)
         val count = db.sql("SELECT count(*) AS total FROM paper_orders WHERE wallet_id=:wallet")
@@ -80,7 +84,7 @@ class PaperCommandDatabaseIntegrationTest {
         assertEquals(1L, count)
 
         val conflict = assertThrows(RuntimeException::class.java) {
-            commands.submit(wallet, request.copy(quantity = "0.02000000")).await()
+            commands.submit(wallet, request.copy(quantity = "0.02000000"), auth).await()
         }
         assertTrue(conflict is ResponseStatusException ||
             conflict.cause is ResponseStatusException)
@@ -89,5 +93,48 @@ class PaperCommandDatabaseIntegrationTest {
             .map { row, _ -> (requireNotNull(row.get("total")) as Number).toLong() }
             .one().await()
         assertEquals(1L, after)
+
+        // Shared bootstrap secret, wrong wallet capability and a missing
+        // header cannot read an idempotent order or place a new one.
+        for (invalid in listOf("", "Bearer " + "a".repeat(40),
+            "Bearer ${PaperWalletTokens.generate()}")) {
+            val denied = assertThrows(RuntimeException::class.java) {
+                commands.submit(wallet, request, invalid).await()
+            }
+            val response = (denied as? ResponseStatusException)
+                ?: (denied.cause as? ResponseStatusException)
+            assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, response?.statusCode)
+        }
+        assertEquals(1L, db.sql("SELECT COUNT(*) AS total FROM paper_orders")
+            .map { row, _ -> (requireNotNull(row.get("total")) as Number).toLong() }
+            .one().await())
+
+        // Recheck even after the WebFilter may have already accepted the
+        // original bearer; rotation invalidates it for DB mutation.
+        val lifecycle = PaperWalletCredentialLifecycle(db)
+        val rotated = lifecycle.rotate(wallet, provisioned.walletToken).await()
+        val oldDenied = assertThrows(RuntimeException::class.java) {
+            commands.submit(wallet, request.copy(clientOrderId = "old-after-rotation"), auth).await()
+        }
+        val oldResponse = (oldDenied as? ResponseStatusException)
+            ?: (oldDenied.cause as? ResponseStatusException)
+        assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, oldResponse?.statusCode)
+        val fresh = commands.submit(wallet, request.copy(clientOrderId = "new-after-rotation"),
+            "Bearer $rotated").await()
+        assertEquals("NEW", fresh.status)
+
+        assertTrue(lifecycle.revoke(wallet, rotated).await())
+        val revoked = assertThrows(RuntimeException::class.java) {
+            commands.submit(wallet, request.copy(clientOrderId = "after-revoke"),
+                "Bearer $rotated").await()
+        }
+        val revokedResponse = (revoked as? ResponseStatusException)
+            ?: (revoked.cause as? ResponseStatusException)
+        assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, revokedResponse?.statusCode)
+        val finalCount = db.sql("SELECT COUNT(*) AS total FROM paper_orders WHERE wallet_id=:wallet")
+            .bind("wallet", wallet)
+            .map { row, _ -> (requireNotNull(row.get("total")) as Number).toLong() }
+            .one().await()
+        assertEquals(2L, finalCount)
     }
 }
