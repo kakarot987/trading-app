@@ -20,6 +20,19 @@ class NewsArticleTest {
     }
 
     @Test
+    fun `rejects credential-bearing URLs before persistence or client exposure`() {
+        for (url in listOf(
+            "https://publisher.example/story?auth_token=secret",
+            "https://publisher.example/story?api_key=secret",
+            "https://publisher.example/story?access_token=secret",
+            "https://user:secret@publisher.example/story"
+        )) {
+            assertThrows(IllegalArgumentException::class.java) { article(url) }
+        }
+        assertDoesNotThrow { article("https://publisher.example/story?utm_source=feed") }
+    }
+
+    @Test
     fun `rejects impossible publication chronology and unsafe urls`() {
         assertThrows(IllegalArgumentException::class.java) {
             article().copy(observedAt = published.minusSeconds(1))
