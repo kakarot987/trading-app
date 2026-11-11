@@ -93,5 +93,27 @@ class FeatureSnapshotServiceIntegrationTest {
         // A candle with a close time after the cutoff and unknown provenance
         // may not contribute to an earlier calculation.
         assertEquals(btc, service.computeLatest("BTCUSDT", cutoff))
+
+        // A late revision of a previously usable bar is no longer eligible
+        // for the OLD as-of cutoff: future revisions must not leak backward.
+        DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { connection ->
+            connection.prepareStatement(
+                "UPDATE candles SET source_observed_at_ms = ? WHERE symbol = 'BTCUSDT' AND open_time = ?"
+            ).use { statement ->
+                statement.setLong(1, cutoff + 60_000)
+                statement.setLong(2, 15 * interval)
+                assertEquals(1, statement.executeUpdate())
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            service.computeLatest("BTCUSDT", cutoff)
+        }
+
+        // The revised observation becomes eligible only at its observation time;
+        // no historical trade was fabricated to bridge the gap.
+        val laterSnapshot = service.computeLatest("BTCUSDT", cutoff + 60_000)
+        assertNotNull(laterSnapshot)
+        assertEquals(cutoff, laterSnapshot!!.candleCloseTimeMs)
+        assertEquals(cutoff + 60_000, laterSnapshot.availableAtMs)
     }
 }
