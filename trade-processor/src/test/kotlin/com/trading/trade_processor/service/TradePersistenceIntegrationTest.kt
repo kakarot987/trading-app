@@ -151,5 +151,26 @@ class TradePersistenceIntegrationTest {
 
         restartedWorker.publishPending()
         Mockito.verifyNoMoreInteractions(publisher)
+
+        // Simulate the crash window AFTER Kafka acknowledged a send but
+        // BEFORE PostgreSQL recorded published_at. On restart the durable
+        // outbox intentionally resends the same tradeId (at-least-once).
+        // Downstream consumers must deduplicate by this stable key.
+        val resetRows = db.sql(
+            "UPDATE trade_outbox SET published_at = NULL WHERE trade_id = :tradeId"
+        ).bind("tradeId", event.tradeId)
+            .fetch().rowsUpdated().block(Duration.ofSeconds(5))
+        assertEquals(1L, resetRows)
+        assertEquals(1L, pendingCount(), "Simulated crash retains pending publish intent")
+
+        val replayedWorker = OutboxPublisher(db, jacksonObjectMapper(), publisher)
+        replayedWorker.publishPending()
+        Mockito.verify(publisher, Mockito.times(2)).publishProcessedTrade(output)
+        assertEquals(0L, pendingCount(), "Replay must eventually mark the outbox row published")
+        val tradeRowsAfterReplay = db.sql("SELECT COUNT(*) AS total FROM trades")
+            .map { row, _ -> (row.get("total") as Number).toLong() }
+            .one().block(Duration.ofSeconds(5))
+        assertEquals(1L, tradeRowsAfterReplay, "Output replay must not create a second input trade row")
+        Mockito.verifyNoMoreInteractions(publisher)
     }
 }
