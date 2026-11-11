@@ -37,7 +37,7 @@ class ResearchSignalStore(private val db: DatabaseClient) {
             .bind("rationale", signal.rationale)
             .fetch().rowsUpdated()
 
-    fun list(symbol: String, asOfMs: Long, limit: Int): Flux<DirectionalSignal> {
+    fun list(symbol: String, asOfMs: Long, limit: Int, activeOnly: Boolean = false): Flux<DirectionalSignal> {
         require(symbol in setOf("BTCUSDT", "ETHUSDT"))
         require(limit in 1..100)
         return db.sql(
@@ -48,10 +48,12 @@ class ResearchSignalStore(private val db: DatabaseClient) {
             FROM research_signals
             WHERE symbol = :symbol AND generated_at_ms <= :asOf
               AND feature_available_at_ms <= :asOf
+              AND (NOT :activeOnly OR expires_at_ms > :asOf)
             ORDER BY generated_at_ms DESC, id DESC
             LIMIT :limit
             """.trimIndent()
         ).bind("symbol", symbol).bind("asOf", asOfMs).bind("limit", limit)
+            .bind("activeOnly", activeOnly)
             .map { row, _ ->
                 fun number(name: String) = (requireNotNull(row.get(name)) as Number)
                 DirectionalSignal(

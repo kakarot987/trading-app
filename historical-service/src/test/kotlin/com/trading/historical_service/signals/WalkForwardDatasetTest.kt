@@ -46,6 +46,28 @@ class WalkForwardDatasetTest {
     }
 
     @Test
+    fun `revised previous price and late future labels fail closed`() {
+        val features = listOf(feature(0), feature(1))
+        val bars = (0..2).map { candle(it, 100.0 + it) }
+        val onTime = bars.associate { it.closeTimeMs to it.closeTimeMs }
+        assertEquals(2, WalkForwardDataset.build(features, bars, onTime).size)
+        val revisedCurrent = onTime + (h to (h + 1))
+        assertEquals(1, WalkForwardDataset.build(features, bars, revisedCurrent).size)
+        val lateNext = onTime + ((2 * h) to (2 * h + 1))
+        assertEquals(0, WalkForwardDataset.build(listOf(feature(0)), bars, lateNext).size)
+    }
+
+    @Test
+    fun `observation map must contain every candle`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            WalkForwardDataset.build(
+                listOf(feature(0)), listOf(candle(0, 100.0), candle(1, 102.0)),
+                mapOf(h to h)
+            )
+        }
+    }
+
+    @Test
     fun `purged split prevents training labels overlapping holdout`() {
         val rows = WalkForwardDataset.build(
             (0..4).map(::feature),

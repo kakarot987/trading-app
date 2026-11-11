@@ -17,7 +17,8 @@ class ResearchSignalController(private val store: ResearchSignalStore) {
     fun list(
         @RequestParam symbol: String,
         @RequestParam asOf: Instant,
-        @RequestParam(defaultValue = "20") limit: Int
+        @RequestParam(defaultValue = "20") limit: Int,
+        @RequestParam(defaultValue = "false") activeOnly: Boolean = false
     ): Flux<DirectionalSignal> {
         if (symbol !in setOf("BTCUSDT", "ETHUSDT")) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported symbol")
@@ -28,6 +29,6 @@ class ResearchSignalController(private val store: ResearchSignalStore) {
         if (asOf.isAfter(Instant.now())) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Future asOf is forbidden")
         }
-        return store.list(symbol, asOf.toEpochMilli(), limit)
+        return store.list(symbol, asOf.toEpochMilli(), limit, activeOnly)
     }
 }

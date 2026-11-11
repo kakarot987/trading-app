@@ -11,7 +11,12 @@ object CalibratedWalkForward {
         val raw: HoldoutMetrics,
         val calibrated: HoldoutMetrics,
         val calibrationSize: Int,
-        val holdoutStartMs: Long
+        val holdoutStartMs: Long,
+        val preCalibrationTrainSize: Int,
+        val holdoutEndMs: Long,
+        val datasetSha256: String,
+        val coinFlip: HoldoutMetrics,
+        val trainingPrevalence: HoldoutMetrics
     )
 
     fun evaluate(
@@ -22,6 +27,12 @@ object CalibratedWalkForward {
         require(calibrationStartMs < holdoutStartMs)
         require(rows.zipWithNext().all { (a, b) -> a.predictionTimeMs <= b.predictionTimeMs })
         require(rows.all { it.labelAvailableAtMs > it.predictionTimeMs })
+        require(rows.all { it.symbol in setOf("BTCUSDT", "ETHUSDT") &&
+            it.features.symbol == it.symbol && it.featureVersion == it.features.featureVersion &&
+            it.features.availableAtMs == it.predictionTimeMs &&
+            it.features.candleCloseTimeMs <= it.predictionTimeMs &&
+            it.nextReturn.isFinite() && it.up == (it.nextReturn > 0.0)
+        }) { "Invalid observation or label provenance" }
 
         val calibrationRows = rows.filter {
             it.predictionTimeMs >= calibrationStartMs &&
@@ -54,13 +65,23 @@ object CalibratedWalkForward {
         }
         require(finalTrain.size >= LogisticBaseline.MIN_TRAIN_ROWS)
         val model = LogisticBaseline.fit(finalTrain)
+        val prevalence = finalTrain.count { it.up }.toDouble() / finalTrain.size
         val raw = holdoutRows.map { ScoredObservation(model.predict(it), it.up) }
         val adjusted = raw.map { ScoredObservation(calibrator.transform(it.probabilityUp), it.actualUp) }
         return Report(
             raw = WalkForwardMetrics.evaluate(LogisticBaseline.VERSION, raw),
             calibrated = WalkForwardMetrics.evaluate("platt-" + LogisticBaseline.VERSION, adjusted),
             calibrationSize = calibrationScores.size,
-            holdoutStartMs = holdoutStartMs
+            holdoutStartMs = holdoutStartMs,
+            preCalibrationTrainSize = finalTrain.size,
+            holdoutEndMs = holdoutRows.last().predictionTimeMs,
+            datasetSha256 = EvaluationProvenance.sha256(rows),
+            coinFlip = WalkForwardMetrics.evaluate("coin-flip-0.5", holdoutRows.map {
+                ScoredObservation(0.5, it.up)
+            }),
+            trainingPrevalence = WalkForwardMetrics.evaluate("train-prevalence", holdoutRows.map {
+                ScoredObservation(prevalence, it.up)
+            })
         )
     }
 }
