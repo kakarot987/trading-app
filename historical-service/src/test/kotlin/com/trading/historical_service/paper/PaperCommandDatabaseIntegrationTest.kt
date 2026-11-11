@@ -32,6 +32,10 @@ class PaperCommandDatabaseIntegrationTest {
                     "/db/migration/V9__create_paper_trading_ledger.sql"
                 )!!.bufferedReader().readText()
                 statement.execute(ddl)
+                val scopedDdl = javaClass.getResourceAsStream(
+                    "/db/migration/V12__paper_wallet_scoped_credentials.sql"
+                )!!.bufferedReader().use { it.readText() }
+                statement.execute(scopedDdl)
             }
         }
         val factory = PostgresqlConnectionFactory(
@@ -44,7 +48,18 @@ class PaperCommandDatabaseIntegrationTest {
         val commands = PaperCommandController(db, true)
         fun <T : Any> Mono<T>.await(): T = requireNotNull(block(Duration.ofSeconds(10)))
 
-        val wallet = commands.createWallet(CreatePaperWalletRequest("250.00000000")).await().walletId
+        val provisioned = commands.createWallet(CreatePaperWalletRequest("250.00000000")).await()
+        val wallet = provisioned.walletId
+        assertTrue(PaperWalletTokens.isWellFormed(provisioned.walletToken))
+        val access = PaperWalletAccessStore(db)
+        assertTrue(access.authorized(wallet, provisioned.walletToken).await())
+        assertFalse(access.authorized(wallet, PaperWalletTokens.generate()).await())
+        val stored = db.sql("SELECT token_hash FROM paper_wallet_access WHERE wallet_id=:wallet")
+            .bind("wallet", wallet)
+            .map { row, _ -> requireNotNull(row.get("token_hash", String::class.java)) }
+            .one().await()
+        assertEquals(PaperWalletTokens.sha256(provisioned.walletToken), stored)
+        assertFalse(stored.contains(provisioned.walletToken))
         val balance = db.sql("SELECT available FROM paper_balances WHERE wallet_id=:wallet AND asset='USDT'")
             .bind("wallet", wallet)
             .map { row, _ -> requireNotNull(row.get("available", java.math.BigDecimal::class.java)) }

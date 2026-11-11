@@ -10,7 +10,7 @@ import java.math.BigDecimal
 import java.util.UUID
 
 data class CreatePaperWalletRequest(val initialUsdt: String = "10000.00000000")
-data class CreatePaperWalletResponse(val walletId: UUID)
+data class CreatePaperWalletResponse(val walletId: UUID, val walletToken: String)
 data class SubmitPaperOrderRequest(
     val clientOrderId: String, val symbol: String,
     val side: PaperOrderSide, val quantity: String, val submittedAtMs: Long
@@ -39,19 +39,27 @@ class PaperCommandController(
         catch (e: IllegalArgumentException) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message)
         }
-        // Single statement atomically creates wallet and initial USDT.
+        // Provision a unique scoped secret. Only the digest is stored, and the
+        // raw credential is returned exactly once with Cache-Control: no-store
+        // supplied by the paper API filter. Never log walletToken.
+        val walletToken = PaperWalletTokens.generate()
         return db.sql(
             """
             WITH wallet AS (INSERT INTO paper_wallets DEFAULT VALUES RETURNING wallet_id),
             initial AS (
               INSERT INTO paper_balances(wallet_id,asset,available)
               SELECT wallet_id,'USDT',:initial FROM wallet RETURNING wallet_id
+            ), access AS (
+              INSERT INTO paper_wallet_access(wallet_id,token_hash)
+              SELECT wallet_id,:tokenHash FROM wallet RETURNING wallet_id
             )
-            SELECT wallet_id FROM initial
+            SELECT wallet_id FROM access
             """.trimIndent()
         ).bind("initial", initial)
-            .map { row, _ -> CreatePaperWalletResponse(requireNotNull(row.get("wallet_id", UUID::class.java))) }
-            .one()
+            .bind("tokenHash", PaperWalletTokens.sha256(walletToken))
+            .map { row, _ -> CreatePaperWalletResponse(
+                requireNotNull(row.get("wallet_id", UUID::class.java)), walletToken
+            ) }.one()
     }
 
     @PostMapping("/wallets/{walletId}/orders")

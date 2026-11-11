@@ -36,6 +36,10 @@ const WALLET_KEY = 'paper-wallet-id';
 export function PaperPortfolioView() {
   const [walletInput, setWalletInput] = useState(() => localStorage.getItem(WALLET_KEY) ?? '');
   const [walletId, setWalletId] = useState(() => localStorage.getItem(WALLET_KEY) ?? '');
+  // A scoped bearer capability is a secret: never put it in localStorage,
+  // query strings, logs or a persisted state store. Reload clears it.
+  const [credentialInput, setCredentialInput] = useState('');
+  const [walletCredential, setWalletCredential] = useState('');
   const [balances, setBalances] = useState<Balance[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
@@ -48,10 +52,16 @@ export function PaperPortfolioView() {
     setError('');
     try {
       const id = encodeURIComponent(walletId);
+      const options: RequestInit = {
+        cache: 'no-store',
+        ...(walletCredential
+          ? { headers: { Authorization: `Bearer ${walletCredential}` } }
+          : {}),
+      };
       const [balanceResponse, orderResponse, evaluationResponse] = await Promise.all([
-        fetch(`/api/v1/paper/wallets/${id}/balances`),
-        fetch(`/api/v1/paper/wallets/${id}/orders?limit=50`),
-        fetch(`/api/v1/paper/wallets/${id}/evaluation`)
+        fetch(`/api/v1/paper/wallets/${id}/balances`, options),
+        fetch(`/api/v1/paper/wallets/${id}/orders?limit=50`, options),
+        fetch(`/api/v1/paper/wallets/${id}/evaluation`, options)
       ]);
       if (!balanceResponse.ok || !orderResponse.ok || !evaluationResponse.ok) {
         throw new Error('Portfolio API unavailable or wallet request rejected');
@@ -70,7 +80,7 @@ export function PaperPortfolioView() {
     } finally {
       setLoading(false);
     }
-  }, [walletId]);
+  }, [walletId, walletCredential]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -80,7 +90,13 @@ export function PaperPortfolioView() {
       setError('Enter a valid paper wallet UUID');
       return;
     }
+    const secret = credentialInput.trim();
+    if (secret && !/^pw_[A-Za-z0-9_-]{43}$/.test(secret)) {
+      setError('Enter a valid wallet-specific access token');
+      return;
+    }
     localStorage.setItem(WALLET_KEY, id);
+    setWalletCredential(secret);
     setWalletId(id);
     setBalances([]);
     setOrders([]);
@@ -104,7 +120,18 @@ export function PaperPortfolioView() {
           <button type="button" onClick={() => void refresh()} disabled={!walletId || loading}
             className="rounded border border-slate-600 px-4 py-2 text-sm disabled:opacity-50">Refresh</button>
         </div>
-        <p className="text-xs text-slate-500">Local development only. A wallet ID is not authentication; do not expose this API publicly.</p>
+        <label className="block text-sm" htmlFor="paper-wallet-credential">
+          Wallet access token (private demo only)
+        </label>
+        <input id="paper-wallet-credential" type="password" autoComplete="off"
+          className="w-full rounded border border-slate-600 bg-slate-900 p-2 text-sm"
+          value={credentialInput} onChange={(event) => setCredentialInput(event.target.value)}
+          placeholder="pw_... — issued once when the wallet is created" />
+        <p className="text-xs text-slate-500">
+          Wallet UUIDs are not credentials. Access tokens stay only in memory,
+          are cleared on page reload and are not saved to browser storage.
+          This is a private paper demo, not multi-user identity authentication.
+        </p>
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
       </div>
       <div className="rounded-lg border border-slate-700 p-4">

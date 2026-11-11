@@ -128,3 +128,37 @@ test('realized paper inventory is labeled distinctly from unmarked portfolio ret
   expect(requests.length).toBeGreaterThan(0);
   expect(requests.every((method) => method === 'GET')).toBe(true);
 });
+
+test('wallet bearer is sent only to paper URLs and never stored across reload', async ({ page }) => {
+  const credential = 'pw_' + 'B'.repeat(43);
+  const observed = [];
+  await page.route('**/api/v1/paper/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const auth = route.request().headers()['authorization'] ?? '';
+    observed.push({ path, auth, method: route.request().method() });
+    if (auth !== `Bearer ${credential}`) {
+      return route.fulfill({ status: 401, json: { message: 'Unauthorized' } });
+    }
+    if (path.endsWith('/balances')) return route.fulfill({ json: sampleBalance });
+    if (path.endsWith('/orders')) return route.fulfill({ json: sampleOrders });
+    if (path.endsWith('/evaluation')) return route.fulfill({ json: sampleEvaluation });
+    return route.fulfill({ status: 404 });
+  });
+  await page.goto('/');
+  await page.getByTitle('Paper Portfolio').click();
+  await page.getByLabel('Paper wallet ID (UUID)').fill(walletId);
+  await page.getByLabel('Wallet access token (private demo only)').fill(credential);
+  await page.getByRole('button', { name: 'Load wallet' }).click();
+  await expect(page.getByText('100', { exact: true })).toBeVisible();
+  expect(observed.filter(({ auth }) => auth === `Bearer ${credential}`).length).toBeGreaterThanOrEqual(3);
+  const values = await page.evaluate(() => {
+    return { local: JSON.stringify({ ...localStorage }), session: JSON.stringify({ ...sessionStorage }) };
+  });
+  expect(values.local).not.toContain(credential);
+  expect(values.session).not.toContain(credential);
+  await page.reload();
+  await page.getByTitle('Paper Portfolio').click();
+  await expect(page.getByRole('alert')).toContainText('Portfolio API unavailable');
+  expect(observed.some(({ auth }) => auth === '')).toBe(true);
+  expect(observed.every(({ method }) => method === 'GET')).toBe(true);
+});
