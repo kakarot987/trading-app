@@ -39,6 +39,9 @@ class PaperCommandDatabaseIntegrationTest {
                 statement.execute(requireNotNull(javaClass.getResourceAsStream(
                     "/db/migration/V13__paper_wallet_credential_audit.sql"
                 )).bufferedReader().use { it.readText() })
+                statement.execute(requireNotNull(javaClass.getResourceAsStream(
+                    "/db/migration/V14__immutable_paper_wallet_initial_funding.sql"
+                )).bufferedReader().use { it.readText() })
             }
         }
         val factory = PostgresqlConnectionFactory(

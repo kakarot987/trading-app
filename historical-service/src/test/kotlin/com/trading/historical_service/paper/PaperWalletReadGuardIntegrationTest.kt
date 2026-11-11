@@ -38,7 +38,8 @@ class PaperWalletReadGuardIntegrationTest {
                 for (migration in listOf(
                     "V9__create_paper_trading_ledger.sql",
                     "V12__paper_wallet_scoped_credentials.sql",
-                    "V13__paper_wallet_credential_audit.sql"
+                    "V13__paper_wallet_credential_audit.sql",
+                    "V14__immutable_paper_wallet_initial_funding.sql"
                 )) {
                     stmt.execute(requireNotNull(javaClass.getResourceAsStream(
                         "/db/migration/$migration"

@@ -54,8 +54,11 @@ class PaperCommandController(
             ), access AS (
               INSERT INTO paper_wallet_access(wallet_id,token_hash)
               SELECT wallet_id,:tokenHash FROM wallet RETURNING wallet_id
+            ), funding AS (
+              INSERT INTO paper_wallet_funding(wallet_id,asset,initial_amount)
+              SELECT wallet_id,'USDT',:initial FROM wallet RETURNING wallet_id
             )
-            SELECT wallet_id FROM access
+            SELECT wallet_id FROM funding
             """.trimIndent()
         ).bind("initial", initial)
             .bind("tokenHash", PaperWalletTokens.sha256(walletToken))
