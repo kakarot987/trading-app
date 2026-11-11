@@ -39,6 +39,18 @@ class PaperCommandControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, orderError.statusCode)
     }
 
+    @Test fun `enabled paper orders require a wallet capability before querying the DB`() {
+        val controller = PaperCommandController(db, true)
+        for (header in listOf("", "Bearer admin-secret", "Basic example",
+            "Bearer " + "x".repeat(40))) {
+            val error = assertThrows(ResponseStatusException::class.java) {
+                controller.submit(wallet, request, header)
+            }
+            assertEquals(HttpStatus.UNAUTHORIZED, error.statusCode)
+        }
+        org.mockito.Mockito.verifyNoInteractions(db)
+    }
+
     @Test fun `enabled commands reject future submission timestamp`() {
         val controller = PaperCommandController(db, true)
         val error = assertThrows(ResponseStatusException::class.java) {
