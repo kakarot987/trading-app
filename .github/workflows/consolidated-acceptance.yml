@@ -1,0 +1,41 @@
+name: M1-M8 evidence reference inventory
+
+on:
+  push:
+    branches: [main, 'milestone/**']
+    paths:
+      - 'docs/milestone-acceptance-manifest.json'
+      - 'docs/milestone-results/**'
+      - 'scripts/check-consolidated-acceptance.ps1'
+      - '.github/workflows/consolidated-acceptance.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate inventory and existing reference paths
+        shell: pwsh
+        run: ./scripts/check-consolidated-acceptance.ps1
+      - name: Validate inventory output structure
+        shell: pwsh
+        run: |
+          $report = Get-Content 'milestone-evidence-inventory.json' -Raw | ConvertFrom-Json -Depth 40
+          if ($report.inventory_check -ne 'passed' -or
+              @($report.phase_inventory).Count -ne 8 -or
+              @($report.phase_inventory | Where-Object { @($_.existing_document_paths).Count -eq 0 }).Count -gt 0) {
+              throw 'Manifest reference validation failed'
+          }
+          Write-Host '[PASS] All eight phase references resolve within this checkout'
+      - name: Attach reference inventory (informational only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-m8-reference-inventory
+          path: milestone-evidence-inventory.json
+          retention-days: 30
